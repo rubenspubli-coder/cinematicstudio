@@ -603,13 +603,13 @@ section { position: relative; }
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 75%;
-  background: radial-gradient(ellipse 70% 100% at 50% 100%, rgba(185,22,22,0.5) 0%, transparent 70%);
+  background: radial-gradient(ellipse 70% 100% at 50% 100%, rgba(245,176,86,0.45) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 .coverflow-stage {
   position: relative;
-  height: 520px;
+  height: 600px;
   perspective: 1200px;
   perspective-origin: 50% 50%;
   overflow: visible;
@@ -618,8 +618,8 @@ section { position: relative; }
 .cf-card {
   position: absolute;
   left: 50%; top: 50%;
-  width: 340px; height: 476px;
-  margin-left: -170px; margin-top: -238px;
+  width: 390px; height: 546px;
+  margin-left: -195px; margin-top: -273px;
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
@@ -683,7 +683,7 @@ section { position: relative; }
 }
 .cf-meta { font-size: 10px; color: rgba(255,255,255,0.35); }
 .cf-card.is-active {
-  box-shadow: 0 0 0 2px rgba(245,176,86,0.65), 0 20px 55px rgba(0,0,0,0.75), 0 0 35px rgba(180,20,20,0.22);
+  box-shadow: 0 0 0 2px rgba(245,176,86,0.65), 0 20px 55px rgba(0,0,0,0.75), 0 0 40px rgba(245,176,86,0.25);
 }
 .cf-controls {
   display: flex; align-items: center; justify-content: center;
@@ -713,12 +713,12 @@ section { position: relative; }
 }
 .cf-dot.is-active { background: #f5b056; width: 20px; }
 @media (max-width: 499px) {
-  .cf-card { width: 240px; height: 336px; margin-left: -120px; margin-top: -168px; border-radius: 13px; }
-  .coverflow-stage { height: 420px; }
+  .cf-card { width: 270px; height: 378px; margin-left: -135px; margin-top: -189px; border-radius: 13px; }
+  .coverflow-stage { height: 460px; }
 }
 @media (min-width: 500px) and (max-width: 767px) {
-  .cf-card { width: 280px; height: 392px; margin-left: -140px; margin-top: -196px; }
-  .coverflow-stage { height: 470px; }
+  .cf-card { width: 320px; height: 448px; margin-left: -160px; margin-top: -224px; }
+  .coverflow-stage { height: 520px; }
 }
 
 /* ---------- pricing ---------- */
@@ -1680,7 +1680,7 @@ body.loaded { opacity: 1; }
     </div>
   </div>
   <div class="testi-row">
-    <div class="testi-track" id="testi-track"><article class="testi-card"><p class="quote">"Em 30 dias, troquei 4 freelas por 1 cliente fixo pagando R$ 18k/mês. A qualidade das peças subiu absurdo."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#3a2510,#f5b056)"></div><div><div class="name">Lucas Andrade</div><div class="role">Diretor Criativo · Agência iSports</div></div></div><div class="result"><span class="dot"></span>+R$ 18k MRR em 30 dias</div></article><article class="testi-card"><p class="quote">"Saí de 3 dias por arte para 40 minutos. A bancada inteira opera Cinematic. Triplicamos faturamento."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#2a1a3a,#a48bd1)"></div><div><div class="name">Beatriz Souza</div><div class="role">Head of Design · TopBet</div></div></div><div class="result"><span class="dot"></span>3× faturamento</div></article><article class="testi-card"><p class="quote">"Cliente pediu campanha tipo Apple. Entreguei em 6 horas. Aprovado no primeiro envio. Inacreditável."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#0e2230,#4ba0d9)"></div><div><div class="name">Rafael Mendonça</div><div class="role">Founder · Mendoza Studio</div></div></div><div class="result"><span class="dot"></span>Aprovado 1ª round</div></article><article class="testi-card"><p class="quote">"Nunca achei que prompts mudariam meu negócio. Cobro 4× mais por peça e entrego em 1/10 do tempo."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#3a1010,#d96a4a)"></div><div><div class="name">Isabela Ramos</div><div class="role">Art Director freelance</div></div></div><div class="result"><span class="dot"></span>Ticket médio 4×</div></article><article class="testi-card"><p class="quote">"O agente Sports virou nossa engine de campanhas. Cada matchday entregamos 12 peças. Antes eram 2."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#0a2a1f,#5dbe8a)"></div><div><div class="name">Felipe Costa</div><div class="role">CMO · Casa de Apostas</div></div></div><div class="result"><span class="dot"></span>6× output semanal</div></article><article class="testi-card"><p class="quote">"Eu era cético. Comprei pra testar. Recuperei o investimento na primeira semana com 1 cliente novo."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#2a2010,#e0b860)"></div><div><div class="name">Camila Tavares</div><div class="role">Designer sênior · in-house</div></div></div><div class="result"><span class="dot"></span>ROI em 7 dias</div></article><article class="testi-card"><p class="quote">"Em 30 dias, troquei 4 freelas por 1 cliente fixo pagando R$ 18k/mês. A qualidade das peças subiu absurdo."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#3a2510,#f5b056)"></div><div><div class="name">Lucas Andrade</div><div class="role">Diretor Criativo · Agência iSports</div></div></div><div class="result"><span class="dot"></span>+R$ 18k MRR em 30 dias</div></article><article class="testi-card"><p class="quote">"Saí de 3 dias por arte para 40 minutos. A bancada inteira opera Cinematic. Triplicamos faturamento."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#2a1a3a,#a48bd1)"></div><div><div class="name">Beatriz Souza</div><div class="role">Head of Design · TopBet</div></div></div><div class="result"><span class="dot"></span>3× faturamento</div></article><article class="testi-card"><p class="quote">"Cliente pediu campanha tipo Apple. Entreguei em 6 horas. Aprovado no primeiro envio. Inacreditável."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#0e2230,#4ba0d9)"></div><div><div class="name">Rafael Mendonça</div><div class="role">Founder · Mendoza Studio</div></div></div><div class="result"><span class="dot"></span>Aprovado 1ª round</div></article><article class="testi-card"><p class="quote">"Nunca achei que prompts mudariam meu negócio. Cobro 4× mais por peça e entrego em 1/10 do tempo."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#3a1010,#d96a4a)"></div><div><div class="name">Isabela Ramos</div><div class="role">Art Director freelance</div></div></div><div class="result"><span class="dot"></span>Ticket médio 4×</div></article><article class="testi-card"><p class="quote">"O agente Sports virou nossa engine de campanhas. Cada matchday entregamos 12 peças. Antes eram 2."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#0a2a1f,#5dbe8a)"></div><div><div class="name">Felipe Costa</div><div class="role">CMO · Casa de Apostas</div></div></div><div class="result"><span class="dot"></span>6× output semanal</div></article><article class="testi-card"><p class="quote">"Eu era cético. Comprei pra testar. Recuperei o investimento na primeira semana com 1 cliente novo."</p><div class="person"><div class="avatar" style="background:linear-gradient(135deg,#2a2010,#e0b860)"></div><div><div class="name">Camila Tavares</div><div class="role">Designer sênior · in-house</div></div></div><div class="result"><span class="dot"></span>ROI em 7 dias</div></article></div>
+    <div class="testi-track" id="testi-track"><article class="testi-card"><p class="quote">"Em 30 dias, troquei 4 freelas por 1 cliente fixo pagando R$ 18k/mês. A qualidade das peças subiu absurdo."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=11)"></div><div><div class="name">Lucas Andrade</div><div class="role">Diretor Criativo · Agência iSports</div></div></div><div class="result"><span class="dot"></span>+R$ 18k MRR em 30 dias</div></article><article class="testi-card"><p class="quote">"Saí de 3 dias por arte para 40 minutos. A bancada inteira opera Cinematic. Triplicamos faturamento."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=47)"></div><div><div class="name">Beatriz Souza</div><div class="role">Head of Design · TopBet</div></div></div><div class="result"><span class="dot"></span>3× faturamento</div></article><article class="testi-card"><p class="quote">"Cliente pediu campanha tipo Apple. Entreguei em 6 horas. Aprovado no primeiro envio. Inacreditável."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=15)"></div><div><div class="name">Rafael Mendonça</div><div class="role">Founder · Mendoza Studio</div></div></div><div class="result"><span class="dot"></span>Aprovado 1ª round</div></article><article class="testi-card"><p class="quote">"Nunca achei que prompts mudariam meu negócio. Cobro 4× mais por peça e entrego em 1/10 do tempo."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=44)"></div><div><div class="name">Isabela Ramos</div><div class="role">Art Director freelance</div></div></div><div class="result"><span class="dot"></span>Ticket médio 4×</div></article><article class="testi-card"><p class="quote">"O agente Sports virou nossa engine de campanhas. Cada matchday entregamos 12 peças. Antes eram 2."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=12)"></div><div><div class="name">Felipe Costa</div><div class="role">CMO · Casa de Apostas</div></div></div><div class="result"><span class="dot"></span>6× output semanal</div></article><article class="testi-card"><p class="quote">"Eu era cético. Comprei pra testar. Recuperei o investimento na primeira semana com 1 cliente novo."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=49)"></div><div><div class="name">Camila Tavares</div><div class="role">Designer sênior · in-house</div></div></div><div class="result"><span class="dot"></span>ROI em 7 dias</div></article><article class="testi-card"><p class="quote">"Em 30 dias, troquei 4 freelas por 1 cliente fixo pagando R$ 18k/mês. A qualidade das peças subiu absurdo."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=11)"></div><div><div class="name">Lucas Andrade</div><div class="role">Diretor Criativo · Agência iSports</div></div></div><div class="result"><span class="dot"></span>+R$ 18k MRR em 30 dias</div></article><article class="testi-card"><p class="quote">"Saí de 3 dias por arte para 40 minutos. A bancada inteira opera Cinematic. Triplicamos faturamento."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=47)"></div><div><div class="name">Beatriz Souza</div><div class="role">Head of Design · TopBet</div></div></div><div class="result"><span class="dot"></span>3× faturamento</div></article><article class="testi-card"><p class="quote">"Cliente pediu campanha tipo Apple. Entreguei em 6 horas. Aprovado no primeiro envio. Inacreditável."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=15)"></div><div><div class="name">Rafael Mendonça</div><div class="role">Founder · Mendoza Studio</div></div></div><div class="result"><span class="dot"></span>Aprovado 1ª round</div></article><article class="testi-card"><p class="quote">"Nunca achei que prompts mudariam meu negócio. Cobro 4× mais por peça e entrego em 1/10 do tempo."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=44)"></div><div><div class="name">Isabela Ramos</div><div class="role">Art Director freelance</div></div></div><div class="result"><span class="dot"></span>Ticket médio 4×</div></article><article class="testi-card"><p class="quote">"O agente Sports virou nossa engine de campanhas. Cada matchday entregamos 12 peças. Antes eram 2."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=12)"></div><div><div class="name">Felipe Costa</div><div class="role">CMO · Casa de Apostas</div></div></div><div class="result"><span class="dot"></span>6× output semanal</div></article><article class="testi-card"><p class="quote">"Eu era cético. Comprei pra testar. Recuperei o investimento na primeira semana com 1 cliente novo."</p><div class="person"><div class="avatar" style="background-image:url(https://i.pravatar.cc/80?img=49)"></div><div><div class="name">Camila Tavares</div><div class="role">Designer sênior · in-house</div></div></div><div class="result"><span class="dot"></span>ROI em 7 dias</div></article></div>
   </div>
 </section>
 
@@ -1919,14 +1919,8 @@ window.addEventListener('load',function(){
       else imgDiv.style.background=item.gradient||'#1a1a22';
       imgDiv.innerHTML=
         '<div class="cf-card-overlay"></div>'+
-        '<div class="cf-card-top">'+
-          '<div class="cf-badge" style="background:'+cfEsc(item.badgeColor||'#d92b3a')+'">'+cfEsc(item.badge||'AI')+'</div>'+
-          (item.rating?'<div class="cf-rating"><span class="cf-star">★</span>'+cfEsc(item.rating)+'</div>':'')+
-        '</div>'+
         '<div class="cf-card-bottom">'+
-          '<span class="cf-tag">'+cfEsc(item.tag||'')+'</span>'+
           '<h5 class="cf-title">'+cfEsc(item.title||'')+'</h5>'+
-          (item.meta?'<div class="cf-meta">'+cfEsc(item.meta)+'</div>':'')+
         '</div>';
       card.appendChild(imgDiv);
       card.addEventListener('click',function(){
