@@ -652,6 +652,44 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── Upload de imagem para Cloudinary ────────────────────────────────────
+  if(req.method==='POST' && url==='/admin/upload-image') {
+    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const CLDN_CLOUD=process.env.CLOUDINARY_CLOUD_NAME;
+    const CLDN_KEY=process.env.CLOUDINARY_API_KEY;
+    const CLDN_SECRET=process.env.CLOUDINARY_API_SECRET;
+    if(!CLDN_CLOUD||!CLDN_KEY||!CLDN_SECRET)
+      return sendJSON(res,503,{error:'Cloudinary não configurado. Adicione CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET nas variáveis de ambiente do Railway.'});
+    const body=await parseBody(req);
+    const {data,folder}=body;
+    if(!data)return sendJSON(res,400,{error:'Missing data'});
+    const ts=Math.round(Date.now()/1000);
+    const f=(folder||'cinematic').replace(/[^a-z0-9/_-]/gi,'');
+    const sigStr=`folder=${f}&timestamp=${ts}${CLDN_SECRET}`;
+    const sig=crypto.createHash('sha1').update(sigStr).digest('hex');
+    const boundary='cld'+crypto.randomBytes(12).toString('hex');
+    function part(name,value){return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;}
+    const bodyStr=part('file',data)+part('api_key',CLDN_KEY)+part('timestamp',String(ts))+part('folder',f)+part('signature',sig)+`--${boundary}--\r\n`;
+    const bodyBuf=Buffer.from(bodyStr);
+    const opts={
+      hostname:'api.cloudinary.com',path:`/v1_1/${CLDN_CLOUD}/image/upload`,method:'POST',
+      headers:{'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':bodyBuf.length}
+    };
+    const apiReq=https.request(opts,apiRes=>{
+      let rb='';apiRes.on('data',c=>rb+=c);
+      apiRes.on('end',()=>{
+        try{
+          const j=JSON.parse(rb);
+          if(j.secure_url)sendJSON(res,200,{url:j.secure_url,public_id:j.public_id});
+          else sendJSON(res,500,{error:j.error?.message||'Upload falhou'});
+        }catch(e){sendJSON(res,500,{error:'Resposta inválida do Cloudinary'});}
+      });
+    });
+    apiReq.on('error',err=>sendJSON(res,500,{error:err.message}));
+    apiReq.write(bodyBuf);apiReq.end();
+    return;
+  }
+
   // ── Config pública ───────────────────────────────────────────────────────
   if(req.method==='GET' && url==='/config.json') {
     if(!pool){

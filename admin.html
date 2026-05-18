@@ -635,21 +635,26 @@ function toast(msg,type){
 
 function onFavSelect(input){
   var file=input.files[0];if(!file)return;
-  if(file.size>512*1024){toast('Arquivo muito grande. Máximo 512 KB.','err');input.value='';return;}
+  if(file.size>2*1024*1024){toast('Arquivo muito grande. Máximo 2 MB.','err');input.value='';return;}
   var fn=document.getElementById('fav-fname');
   fn.textContent=file.name;fn.style.display='block';
   var reader=new FileReader();
   reader.onload=function(e){
-    window._favB64=e.target.result;
+    window._favData=e.target.result;
     loadFaviconPreview(e.target.result);
   };
   reader.readAsDataURL(file);
 }
 
 async function saveFavicon(){
-  if(!window._favB64)return toast('Selecione um arquivo primeiro.','err');
+  if(!window._favData)return toast('Selecione um arquivo primeiro.','err');
   try{
-    var r=await fetch('/admin/config',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({faviconBase64:window._favB64})});
+    toast('⬆ Enviando favicon...');
+    var up=await fetch('/admin/upload-image',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({data:window._favData,folder:'cinematic/favicon'})});
+    if(up.status===401){doLogout();return;}
+    var ud=await up.json();
+    if(!ud.url)throw new Error(ud.error||'Erro no upload');
+    var r=await fetch('/admin/config',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({faviconBase64:ud.url})});
     if(r.status===401){doLogout();return;}
     var d=await r.json();
     if(!d.ok)throw new Error(d.error||'Erro');
@@ -726,14 +731,29 @@ function toggleCardEditor(btn) {
 function onCardImgSelect(input, idx) {
   var file = input.files[0];
   if (!file) return;
-  if (file.size > 512*1024) { toast('Imagem muito grande. Max 512KB.','err'); input.value=''; return; }
+  if (file.size > 10*1024*1024) { toast('Imagem muito grande. Máx. 10MB.','err'); input.value=''; return; }
+  var drop = input.closest('.card-img-drop').querySelector('p');
+  if (drop) drop.innerHTML = '⬆ Enviando...';
   var reader = new FileReader();
-  reader.onload = function(e) {
-    cardsData[idx]._pendingImg = e.target.result;
-    var item = document.querySelectorAll('.card-editor-item')[idx];
-    var prev = item.querySelector('.card-img-preview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
+  reader.onload = async function(e) {
+    try {
+      var r = await fetch('/admin/upload-image', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({data: e.target.result, folder: 'cinematic/cards'})
+      });
+      var d = await r.json();
+      if (!d.url) throw new Error(d.error || 'Erro no upload');
+      cardsData[idx]._pendingImg = d.url;
+      var item = document.querySelectorAll('.card-editor-item')[idx];
+      var prev = item.querySelector('.card-img-preview');
+      prev.src = d.url; prev.style.display = 'block';
+      if (drop) drop.innerHTML = '✓ Imagem enviada ao Cloudinary';
+      toast('✓ Imagem do card enviada');
+    } catch(err) {
+      if (drop) drop.innerHTML = '📎 Clique ou arraste uma imagem<br><small>PNG, JPG — max 10MB</small>';
+      toast(err.message, 'err');
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -910,32 +930,30 @@ function addSlide() {
 function onSlideImgSelect(input, idx) {
   var file = input.files[0];
   if (!file) return;
-  if (file.size > 1024*1024) { toast('Imagem muito grande. Máx. 1 MB.','err'); input.value=''; return; }
-  // Comprime via canvas
+  if (file.size > 10*1024*1024) { toast('Imagem muito grande. Máx. 10MB.','err'); input.value=''; return; }
+  var span = input.parentElement.querySelector('p span');
+  if (span) span.textContent = '⬆ Enviando...';
   var reader = new FileReader();
-  reader.onload = function(e) {
-    var img = new Image();
-    img.onload = function() {
-      var MAX = 720;
-      var w = img.width, h = img.height;
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else { w = Math.round(w * MAX / h); h = MAX; }
-      }
-      var canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      sliderData[idx].img = dataUrl;
+  reader.onload = async function(e) {
+    try {
+      var r = await fetch('/admin/upload-image', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({data: e.target.result, folder: 'cinematic/slider'})
+      });
+      var d = await r.json();
+      if (!d.url) throw new Error(d.error || 'Erro no upload');
+      sliderData[idx].img = d.url;
       var prev = document.getElementById('slide-prev-'+idx);
-      if (prev) { prev.src = dataUrl; prev.style.opacity = '1'; }
+      if (prev) { prev.src = d.url; prev.style.opacity = '1'; }
       var thumb = document.querySelector('#slide-item-'+idx+' .slide-thumb');
-      if (thumb) { thumb.src = dataUrl; thumb.style.opacity = '1'; }
-      // update drop label
-      var drop = input.parentElement.querySelector('p span');
-      if (drop) drop.textContent = '✓ Imagem carregada';
-    };
-    img.src = e.target.result;
+      if (thumb) { thumb.src = d.url; thumb.style.opacity = '1'; }
+      if (span) span.textContent = '✓ Imagem enviada ao Cloudinary';
+      toast('✓ Slide '+( idx+1)+' enviado');
+    } catch(err) {
+      if (span) span.textContent = 'Nenhuma imagem';
+      toast(err.message, 'err');
+    }
   };
   reader.readAsDataURL(file);
 }
