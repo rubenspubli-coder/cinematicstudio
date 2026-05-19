@@ -60,10 +60,25 @@ html, body {
 }
 
 body {
+  background: var(--bg);
+}
+
+.bg-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(245, 176, 86, 0.08), transparent 60%),
-    radial-gradient(900px 500px at -10% 30%, rgba(201, 125, 74, 0.06), transparent 60%),
-    var(--bg);
+    radial-gradient(ellipse 1100px 750px at 90% -5%,  rgba(245,176,86,0.16), transparent 62%),
+    radial-gradient(ellipse 800px 700px at -8% 48%,   rgba(201,125,74,0.11), transparent 60%),
+    radial-gradient(ellipse 700px 550px at 55% 102%,  rgba(245,158,50,0.09), transparent 58%),
+    radial-gradient(ellipse 500px 400px at 50% 50%,   rgba(245,176,86,0.04), transparent 55%);
+  animation: ambient-breathe 12s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-breathe {
+  0%   { opacity: 1; }
+  100% { opacity: 0.72; }
 }
 
 img { max-width: 100%; display: block; }
@@ -1394,6 +1409,7 @@ body.loaded { opacity: 1; }
 </style>
 </head>
 <body>
+<div class="bg-ambient" aria-hidden="true"></div>
 <!-- NAV -->
 <nav class="nav" id="main-nav">
   <div class="shell nav-inner">
