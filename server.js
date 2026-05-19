@@ -275,7 +275,16 @@ function verifyJWT(token) {
   } catch{return null;}
 }
 function parseBody(req) {
-  return new Promise((res,rej)=>{let b='';req.on('data',c=>b+=c);req.on('end',()=>{try{res(JSON.parse(b||'{}'));}catch{res({});}});req.on('error',rej);});
+  return new Promise((res,rej)=>{
+    const chunks=[];
+    req.on('data',c=>chunks.push(Buffer.isBuffer(c)?c:Buffer.from(c)));
+    req.on('end',()=>{
+      const b=Buffer.concat(chunks).toString('utf8');
+      try{res(JSON.parse(b||'{}'));}
+      catch(e){console.error('[parseBody] JSON parse error:',e.message,'body size:',b.length);res({});}
+    });
+    req.on('error',rej);
+  });
 }
 function sendJSON(res,status,data) {
   res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});
@@ -658,34 +667,39 @@ const server = http.createServer(async (req, res) => {
     const CLDN_CLOUD=process.env.CLOUDINARY_CLOUD_NAME;
     const CLDN_KEY=process.env.CLOUDINARY_API_KEY;
     const CLDN_SECRET=process.env.CLOUDINARY_API_SECRET;
+    console.log('[UPLOAD] cloud:', CLDN_CLOUD||'NOT SET', '| key:', CLDN_KEY?'SET':'NOT SET', '| secret:', CLDN_SECRET?'SET':'NOT SET');
     if(!CLDN_CLOUD||!CLDN_KEY||!CLDN_SECRET)
-      return sendJSON(res,503,{error:'Cloudinary não configurado. Adicione CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET nas variáveis de ambiente do Railway.'});
+      return sendJSON(res,503,{error:'Cloudinary não configurado. Variáveis faltando: '+ [!CLDN_CLOUD&&'CLOUDINARY_CLOUD_NAME',!CLDN_KEY&&'CLOUDINARY_API_KEY',!CLDN_SECRET&&'CLOUDINARY_API_SECRET'].filter(Boolean).join(', ')});
     const body=await parseBody(req);
     const {data,folder}=body;
-    if(!data)return sendJSON(res,400,{error:'Missing data'});
+    if(!data){console.error('[UPLOAD] body sem campo data, keys recebidas:',Object.keys(body));return sendJSON(res,400,{error:'Campo data ausente no body'});}
+    console.log('[UPLOAD] data size:', data.length, '| folder:', folder);
     const ts=Math.round(Date.now()/1000);
     const f=(folder||'cinematic').replace(/[^a-z0-9/_-]/gi,'');
     const sigStr=`folder=${f}&timestamp=${ts}${CLDN_SECRET}`;
     const sig=crypto.createHash('sha1').update(sigStr).digest('hex');
     const boundary='cld'+crypto.randomBytes(12).toString('hex');
-    function part(name,value){return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;}
-    const bodyStr=part('file',data)+part('api_key',CLDN_KEY)+part('timestamp',String(ts))+part('folder',f)+part('signature',sig)+`--${boundary}--\r\n`;
-    const bodyBuf=Buffer.from(bodyStr);
+    function mkPart(name,value){return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;}
+    const bodyStr=mkPart('file',data)+mkPart('api_key',CLDN_KEY)+mkPart('timestamp',String(ts))+mkPart('folder',f)+mkPart('signature',sig)+`--${boundary}--\r\n`;
+    const bodyBuf=Buffer.from(bodyStr,'binary');
     const opts={
       hostname:'api.cloudinary.com',path:`/v1_1/${CLDN_CLOUD}/image/upload`,method:'POST',
       headers:{'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':bodyBuf.length}
     };
     const apiReq=https.request(opts,apiRes=>{
-      let rb='';apiRes.on('data',c=>rb+=c);
+      const chunks=[];
+      apiRes.on('data',c=>chunks.push(c));
       apiRes.on('end',()=>{
+        const rb=Buffer.concat(chunks).toString('utf8');
+        console.log('[UPLOAD] Cloudinary status:', apiRes.statusCode, '| response:', rb.slice(0,300));
         try{
           const j=JSON.parse(rb);
-          if(j.secure_url)sendJSON(res,200,{url:j.secure_url,public_id:j.public_id});
-          else sendJSON(res,500,{error:j.error?.message||'Upload falhou'});
-        }catch(e){sendJSON(res,500,{error:'Resposta inválida do Cloudinary'});}
+          if(j.secure_url){sendJSON(res,200,{url:j.secure_url,public_id:j.public_id});}
+          else{console.error('[UPLOAD] Cloudinary error:',j.error);sendJSON(res,500,{error:j.error?.message||'Upload falhou'});}
+        }catch(e){console.error('[UPLOAD] JSON parse error:',e.message);sendJSON(res,500,{error:'Resposta inválida do Cloudinary: '+rb.slice(0,100)});}
       });
     });
-    apiReq.on('error',err=>sendJSON(res,500,{error:err.message}));
+    apiReq.on('error',err=>{console.error('[UPLOAD] HTTPS error:',err.message);sendJSON(res,500,{error:err.message});});
     apiReq.write(bodyBuf);apiReq.end();
     return;
   }

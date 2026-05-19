@@ -920,7 +920,8 @@ function onSlideImgSelect(input, idx) {
   if (!file) return;
   if (file.size > 10*1024*1024) { toast('Imagem muito grande. Máx. 10MB.','err'); input.value=''; return; }
   var span = input.parentElement.querySelector('p span');
-  if (span) span.textContent = '⬆ Enviando...';
+  function setSpan(msg, color) { if (span) { span.textContent = msg; span.style.color = color || 'var(--accent2)'; } }
+  setSpan('⬆ Enviando...', 'var(--accent2)');
   var reader = new FileReader();
   reader.onload = async function(e) {
     try {
@@ -937,10 +938,10 @@ function onSlideImgSelect(input, idx) {
       if (prev) { prev.src = d.url; prev.style.opacity = '1'; }
       var thumb = document.querySelector('#slide-item-'+idx+' .slide-thumb');
       if (thumb) { thumb.src = d.url; thumb.style.opacity = '1'; }
-      if (span) span.textContent = '✓ Imagem enviada ao Cloudinary';
+      setSpan('✓ Imagem enviada ao Cloudinary', 'var(--success)');
       await saveSlider();
     } catch(err) {
-      if (span) span.textContent = 'Nenhuma imagem';
+      setSpan('✗ Erro: ' + err.message, 'var(--danger)');
       toast(err.message, 'err');
     }
   };
