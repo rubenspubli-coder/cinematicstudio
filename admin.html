@@ -100,21 +100,12 @@
   .agent-prompt-section { background:rgba(124,58,237,.06); border:1px solid rgba(124,58,237,.2); border-radius:10px; padding:16px; margin-top:12px; }
   .agent-prompt-section label { color:var(--accent2); }
   .agent-prompt-section textarea { min-height:140px; font-size:12px; font-family:'DM Sans',monospace; }
-  .rte-wrap { border:1.5px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
-  .rte-toolbar { background:rgba(255,255,255,.04); border-bottom:1px solid var(--border); padding:6px 8px; display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
-  .rte-group { display:flex; align-items:center; gap:2px; }
-  .rte-sep { width:1px; height:20px; background:var(--border); margin:0 4px; }
-  .rte-btn { background:rgba(255,255,255,.06); border:1px solid transparent; border-radius:6px; padding:4px 9px; font-size:12px; color:var(--fg); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .15s; white-space:nowrap; }
-  .rte-btn:hover { background:rgba(255,255,255,.14); border-color:var(--border2); }
-  .rte-italic { font-style:italic; }
-  .rte-strike { text-decoration:line-through; }
-  .rte-select { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:6px; padding:4px 6px; font-size:12px; color:var(--fg); cursor:pointer; font-family:'DM Sans',sans-serif; outline:none; }
-  .rte-color-lbl { background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font-size:12px; color:var(--fg); cursor:pointer; position:relative; font-weight:700; user-select:none; }
-  .rte-editor { min-height:100px; padding:8px 14px; font-size:14px; color:var(--fg); outline:none; background:transparent; line-height:1.3; }
-  .rte-editor p, .rte-editor div { margin:0; padding:0; line-height:1.3; }
-  .rte-editor br { line-height:1.3; }
-  .rte-source { min-height:100px; width:100%; background:rgba(0,0,0,.3); border:none; border-top:1px solid var(--border); padding:12px 14px; font-size:12px; color:#a5f3fc; font-family:monospace; resize:vertical; outline:none; margin-bottom:0; border-radius:0; }
-  .rte-size-input { width:54px; background:rgba(255,255,255,.06); border:1px solid var(--border); border-radius:6px; padding:4px 6px; font-size:12px; color:var(--fg); font-family:'DM Sans',sans-serif; outline:none; text-align:center; }
+  .hero-fmt-row { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .hero-fmt-color-lbl { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; }
+  .hero-fmt-color-lbl input[type=color] { width:30px; height:30px; padding:2px; border:1px solid var(--border); border-radius:6px; background:transparent; cursor:pointer; }
+  .hero-fmt-btn { background:rgba(255,255,255,.06); border:1px solid transparent; border-radius:6px; padding:5px 14px; font-size:13px; color:var(--fg); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .15s; }
+  .hero-fmt-btn:hover { background:rgba(255,255,255,.14); border-color:var(--border2); }
+  .hero-fmt-btn.active { background:rgba(124,58,237,.25); border-color:var(--accent); color:#fff; }
   .agent-color-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
   .agent-color-row input[type=color] { width:40px; height:36px; border:1px solid var(--border); border-radius:8px; background:transparent; cursor:pointer; padding:2px; }
   .agent-color-row input[type=text] { flex:1; margin-bottom:0; }
@@ -187,85 +178,16 @@
     <div class="st">Hero Section</div>
     <div class="card">
       <label>Headline principal</label>
-      <div class="rte-wrap">
-        <div class="rte-toolbar">
-          <div class="rte-group">
-            <button type="button" class="rte-btn" title="Negrito" onclick="rteCmd('bold')"><b>B</b></button>
-            <button type="button" class="rte-btn rte-italic" title="Itálico" onclick="rteCmd('italic')"><i>I</i></button>
-            <button type="button" class="rte-btn" title="Sublinhado" onclick="rteCmd('underline')"><u>U</u></button>
-            <button type="button" class="rte-btn rte-strike" title="Tachado" onclick="rteCmd('strikeThrough')">S</button>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <button type="button" class="rte-btn" title="Alinhar esquerda" onclick="rteCmd('justifyLeft')">&#8676;</button>
-            <button type="button" class="rte-btn" title="Centralizar" onclick="rteCmd('justifyCenter')">&#8633;</button>
-            <button type="button" class="rte-btn" title="Alinhar direita" onclick="rteCmd('justifyRight')">&#8677;</button>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <input type="number" class="rte-size-input" title="Tamanho em px" placeholder="px" min="8" max="200" onchange="rteFontSizePx(this.value)" onkeydown="if(event.key==='Enter')rteFontSizePx(this.value)">
-            <select class="rte-select" title="Estilo" onchange="rteBlock(this.value)">
-              <option value="">Bloco</option>
-              <option value="p">Parágrafo</option>
-              <option value="h1">H1</option>
-              <option value="h2">H2</option>
-              <option value="h3">H3</option>
-              <option value="div">Div</option>
-            </select>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <label class="rte-color-lbl" title="Cor do texto">A <input type="color" onchange="rteColor(this.value)" value="#ffffff" style="opacity:0;position:absolute;width:0;height:0"></label>
-            <button type="button" class="rte-btn" title="Inserir gradiente AI Studio" onclick="rteInsertGradient()">&#9733; Grad</button>
-            <button type="button" class="rte-btn" title="Limpar formatação" onclick="rteCmd('removeFormat')">&#10005; Fmt</button>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <button type="button" class="rte-btn rte-sm" title="Ver HTML" onclick="rteToggleHtml()">HTML</button>
-          </div>
-        </div>
-        <div id="cfg-hl-editor" class="rte-editor" contenteditable="true" oninput="rteSyncToTextarea()" onkeydown="rteEnter(event,this,rteSyncToTextarea)"></div>
-        <textarea id="cfg-hl" class="rte-source" style="display:none"></textarea>
+      <textarea id="cfg-hl" rows="3" placeholder="Headline principal..." style="margin-bottom:8px"></textarea>
+      <div class="hero-fmt-row">
+        <label class="hero-fmt-color-lbl" title="Cor do texto"><span>Cor</span><input type="color" id="cfg-hl-color" value="#ffffff"></label>
+        <button type="button" class="hero-fmt-btn" id="cfg-hl-italic" onclick="toggleHeroItalic('hl')" title="Itálico"><i>I</i> Itálico</button>
       </div>
       <label>Sub-headline</label>
-      <div class="rte-wrap">
-        <div class="rte-toolbar">
-          <div class="rte-group">
-            <button type="button" class="rte-btn" title="Negrito" onclick="rteCmd2('bold')"><b>B</b></button>
-            <button type="button" class="rte-btn rte-italic" title="Itálico" onclick="rteCmd2('italic')"><i>I</i></button>
-            <button type="button" class="rte-btn" title="Sublinhado" onclick="rteCmd2('underline')"><u>U</u></button>
-            <button type="button" class="rte-btn rte-strike" title="Tachado" onclick="rteCmd2('strikeThrough')">S</button>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <button type="button" class="rte-btn" title="Alinhar esquerda" onclick="rteAlign2('left')">&#8676;</button>
-            <button type="button" class="rte-btn" title="Centralizar" onclick="rteAlign2('center')">&#8633;</button>
-            <button type="button" class="rte-btn" title="Alinhar direita" onclick="rteAlign2('right')">&#8677;</button>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <input type="number" class="rte-size-input" title="Tamanho em px" placeholder="px" min="8" max="200" onchange="rteFontSizePx2(this.value)" onkeydown="if(event.key==='Enter')rteFontSizePx2(this.value)">
-            <select class="rte-select" title="Estilo" onchange="rteBlock2(this.value)">
-              <option value="">Bloco</option>
-              <option value="p">Parágrafo</option>
-              <option value="h1">H1</option>
-              <option value="h2">H2</option>
-              <option value="h3">H3</option>
-              <option value="div">Div</option>
-            </select>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <label class="rte-color-lbl" title="Cor do texto">A <input type="color" onchange="rteColor2(this.value)" value="#ffffff" style="opacity:0;position:absolute;width:0;height:0"></label>
-            <button type="button" class="rte-btn" title="Limpar formatação" onclick="rteCmd2('removeFormat')">&#10005; Fmt</button>
-          </div>
-          <div class="rte-sep"></div>
-          <div class="rte-group">
-            <button type="button" class="rte-btn rte-sm" title="Ver HTML" onclick="rteToggleHtml2()">HTML</button>
-          </div>
-        </div>
-        <div id="cfg-sub-editor" class="rte-editor" contenteditable="true" oninput="rteSyncToTextarea2()" onkeydown="rteEnter(event,this,rteSyncToTextarea2)"></div>
-        <textarea id="cfg-sub" class="rte-source" style="display:none"></textarea>
+      <textarea id="cfg-sub" rows="2" placeholder="Sub-headline..." style="margin-bottom:8px"></textarea>
+      <div class="hero-fmt-row">
+        <label class="hero-fmt-color-lbl" title="Cor do texto"><span>Cor</span><input type="color" id="cfg-sub-color" value="#ffffff"></label>
+        <button type="button" class="hero-fmt-btn" id="cfg-sub-italic" onclick="toggleHeroItalic('sub')" title="Itálico"><i>I</i> Itálico</button>
       </div>
       <button class="sb" onclick="save('hero')">Salvar Hero</button>
     </div>
@@ -395,129 +317,35 @@ async function showPanel(name){
   await loadCfg();
 }
 
-var rteHtmlMode=false;
-var rteHtmlMode2=false;
-function rteEnter(e,ed,sync){
-  if(e.key!=='Enter')return;
-  e.preventDefault();
-  var sel=window.getSelection();
-  if(!sel.rangeCount)return;
-  var range=sel.getRangeAt(0);
-  range.deleteContents();
-  var br=document.createElement('br');
-  range.insertNode(br);
-  range.setStartAfter(br);
-  range.setEndAfter(br);
-  sel.removeAllRanges();
-  sel.addRange(range);
-  sync();
+function stripHtml(html){
+  var tmp=document.createElement('div');
+  tmp.innerHTML=(html||'').replace(/<br\s*\/?>/gi,'\n');
+  return tmp.textContent||'';
 }
 
-function rteExec(edId,taId,sync,cmd,val){
-  var ed=document.getElementById(edId);
-  ed.focus();
-  document.execCommand('styleWithCSS',false,true);
-  document.execCommand(cmd,false,val||null);
-  if(sync)sync();
-}
-function rteCmd(cmd){rteExec('cfg-hl-editor','cfg-hl',rteSyncToTextarea,cmd);}
-function rteCmd2(cmd){rteExec('cfg-sub-editor','cfg-sub',rteSyncToTextarea2,cmd);}
-
-function _applyFontSizePx(edId,syncFn,v){
-  if(!v)return;
-  var ed=document.getElementById(edId);ed.focus();
-  var sel=window.getSelection();
-  if(!sel||!sel.rangeCount)return;
-  var range=sel.getRangeAt(0);
-  if(range.collapsed){
-    var sp=document.createElement('span');sp.style.fontSize=v+'px';sp.textContent='​';
-    range.insertNode(sp);range.setStartAfter(sp);range.setEndAfter(sp);sel.removeAllRanges();sel.addRange(range);
-  }else{
-    var frag=range.extractContents();
-    // remover font-size de todos os elementos internos para evitar conflito
-    frag.querySelectorAll('*').forEach(function(el){el.style.fontSize='';});
-    var sp=document.createElement('span');sp.style.fontSize=v+'px';sp.appendChild(frag);
-    range.insertNode(sp);
-    var nr=document.createRange();nr.selectNodeContents(sp);sel.removeAllRanges();sel.addRange(nr);
-  }
-  syncFn();
-}
-function rteFontSizePx(v){_applyFontSizePx('cfg-hl-editor',rteSyncToTextarea,v);}
-function rteFontSizePx2(v){_applyFontSizePx('cfg-sub-editor',rteSyncToTextarea2,v);}
-
-function rteAlign(v){
-  var ed=document.getElementById('cfg-hl-editor');ed.focus();
-  var sel=window.getSelection();
-  if(!sel.rangeCount)return;
-  var range=sel.getRangeAt(0);
-  var node=range.commonAncestorContainer;
-  while(node&&node.nodeType===3)node=node.parentNode;
-  while(node&&node.parentNode!==ed)node=node.parentNode;
-  if(!node)node=ed;
-  node.style.textAlign=v;
-  rteSyncToTextarea();
-}
-function rteAlign2(v){
-  var ed=document.getElementById('cfg-sub-editor');ed.focus();
-  var sel=window.getSelection();
-  if(!sel.rangeCount)return;
-  var range=sel.getRangeAt(0);
-  var node=range.commonAncestorContainer;
-  while(node&&node.nodeType===3)node=node.parentNode;
-  while(node&&node.parentNode!==ed)node=node.parentNode;
-  if(!node)node=ed;
-  node.style.textAlign=v;
-  rteSyncToTextarea2();
+function buildHeroHtml(textId,colorId,italicId){
+  var text=document.getElementById(textId).value;
+  var color=document.getElementById(colorId).value;
+  var isItalic=document.getElementById(italicId).classList.contains('active');
+  var lines=text.split('\n').map(function(l){return l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');});
+  var html=lines.join('<br>');
+  var style='color:'+color;
+  if(isItalic)style+=';font-style:italic';
+  return '<span style="'+style+'">'+html+'</span>';
 }
 
-function rteBlock(v){if(!v)return;var ed=document.getElementById('cfg-hl-editor');ed.focus();document.execCommand('formatBlock',false,v);rteSyncToTextarea();}
-function rteBlock2(v){if(!v)return;var ed=document.getElementById('cfg-sub-editor');ed.focus();document.execCommand('formatBlock',false,v);rteSyncToTextarea2();}
-
-function rteColor(v){var ed=document.getElementById('cfg-hl-editor');ed.focus();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,v);rteSyncToTextarea();}
-function rteColor2(v){var ed=document.getElementById('cfg-sub-editor');ed.focus();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,v);rteSyncToTextarea2();}
-
-function rteInsertGradient(){
-  document.getElementById('cfg-hl-editor').focus();
-  document.execCommand('insertHTML',false,'<span style="background:linear-gradient(to left,#6366f1,#a855f7,#fcd34d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI Studio</span>');
-  rteSyncToTextarea();
-}
-
-function rteSyncToTextarea(){
-  var ed=document.getElementById('cfg-hl-editor');
-  var ta=document.getElementById('cfg-hl');
-  if(!rteHtmlMode)ta.value=ed.innerHTML;
-}
-function rteSyncToTextarea2(){
-  var ed=document.getElementById('cfg-sub-editor');
-  var ta=document.getElementById('cfg-sub');
-  if(!rteHtmlMode2)ta.value=ed.innerHTML;
-}
-
-function rteToggleHtml(){
-  var ed=document.getElementById('cfg-hl-editor');
-  var ta=document.getElementById('cfg-hl');
-  rteHtmlMode=!rteHtmlMode;
-  if(rteHtmlMode){ta.value=ed.innerHTML;ta.style.display='block';ed.style.display='none';ta.oninput=function(){ed.innerHTML=ta.value;};}
-  else{ed.innerHTML=ta.value;ed.style.display='block';ta.style.display='none';ta.oninput=null;}
-}
-function rteToggleHtml2(){
-  var ed=document.getElementById('cfg-sub-editor');
-  var ta=document.getElementById('cfg-sub');
-  rteHtmlMode2=!rteHtmlMode2;
-  if(rteHtmlMode2){ta.value=ed.innerHTML;ta.style.display='block';ed.style.display='none';ta.oninput=function(){ed.innerHTML=ta.value;};}
-  else{ed.innerHTML=ta.value;ed.style.display='block';ta.style.display='none';ta.oninput=null;}
+function toggleHeroItalic(which){
+  document.getElementById('cfg-'+which+'-italic').classList.toggle('active');
 }
 async function loadCfg(){
   try{
     var r=await fetch('/admin/config',{headers:{'Authorization':'Bearer '+token}});
     if(r.status===401){doLogout();return;}
     var c=await r.json();
-    var hlVal=c.headline||'Cinematic<br><span class="gradient-text">AI Studio</span>';
-    document.getElementById('cfg-hl').value=hlVal;
-    document.getElementById('cfg-hl-editor').innerHTML=hlVal;
+    var hlVal=c.headline||'Cinematic\nAI Studio';
+    document.getElementById('cfg-hl').value=stripHtml(hlVal);
     var subVal=c.subheadline||'';
-    document.getElementById('cfg-sub').value=subVal;
-    document.getElementById('cfg-sub-editor').innerHTML=subVal;
+    document.getElementById('cfg-sub').value=stripHtml(subVal);
     var vu=c.videoUrl||'';document.getElementById('cfg-vid').value=vu;
     if(vu){var v=document.getElementById('vp');v.src=vu;v.load();}
     if(c.overlayColor)document.getElementById('cfg-overlay-color').value=c.overlayColor;
@@ -545,7 +373,7 @@ function loadFaviconPreview(b64){
 
 async function save(sec){
   var p={};
-  if(sec==='hero'){p.headline=document.getElementById('cfg-hl').value;p.subheadline=document.getElementById('cfg-sub').value;}
+  if(sec==='hero'){p.headline=buildHeroHtml('cfg-hl','cfg-hl-color','cfg-hl-italic');p.subheadline=buildHeroHtml('cfg-sub','cfg-sub-color','cfg-sub-italic');}
   else if(sec==='nav'){p.navLinks=readNav();}
   else if(sec==='ticker'){p.tickerItems=readTick();}
   else if(sec==='video'){
