@@ -847,21 +847,21 @@ function addNewCard() {
 var sliderData = [];
 
 var SLIDE_DEFAULTS = [
-  {tag:'Sports',    title:'Campanha Final de Champions', meta:'2024 · 60s spot',  badge:'SP',badgeColor:'#d92b3a',rating:'9.1',img:''},
-  {tag:'Lettering', title:'Logo cinemático',            meta:'2024 · Brand film', badge:'LT',badgeColor:'#e07b20',rating:'7.3',img:''},
-  {tag:'Mascot',    title:'Mascote 3D · Premier',       meta:'2024 · Identity',   badge:'MC',badgeColor:'#2563eb',rating:'8.7',img:''},
-  {tag:'Live Action',title:'Cena épica — Runway',       meta:'2024 · 30s spot',   badge:'LA',badgeColor:'#7c3aed',rating:'7.8',img:''},
-  {tag:'Illusion',  title:'Mundo lúdico — Fairytale',   meta:'2024 · Editorial',  badge:'IL',badgeColor:'#a855f7',rating:'8.2',img:''},
-  {tag:'Realistic', title:'Retrato ultra realista',     meta:'2024 · Portrait',   badge:'RE',badgeColor:'#0d9488',rating:'9.1',img:''},
-  {tag:'Sports',    title:'Goleiro — anúncio iGaming',  meta:'2024 · 15s spot',   badge:'SP',badgeColor:'#d92b3a',rating:'7.5',img:''},
-  {tag:'Lettering', title:'Type cinema — gold',         meta:'2024 · Editorial',  badge:'LT',badgeColor:'#e07b20',rating:'8.0',img:''},
-  {tag:'Mascot',    title:'Mascote esportivo',          meta:'2024 · Brand',      badge:'MC',badgeColor:'#2563eb',rating:'7.9',img:''},
+  {title:'Campanha Final de Champions', img:''},
+  {title:'Logo cinemático',            img:''},
+  {title:'Mascote 3D · Premier',       img:''},
+  {title:'Cena épica — Runway',        img:''},
+  {title:'Mundo lúdico — Fairytale',   img:''},
+  {title:'Retrato ultra realista',     img:''},
+  {title:'Goleiro — anúncio iGaming',  img:''},
+  {title:'Type cinema — gold',         img:''},
+  {title:'Mascote esportivo',          img:''},
 ];
 
 function loadSliderFromCfg(cfg) {
   sliderData = Array.isArray(cfg.sliderItems) && cfg.sliderItems.length
-    ? cfg.sliderItems.map(function(s,i){ return Object.assign({},SLIDE_DEFAULTS[i]||{},s); })
-    : SLIDE_DEFAULTS.map(function(d){ return Object.assign({},d); });
+    ? cfg.sliderItems.map(function(s){ return {img: s.img||'', title: s.title||''}; })
+    : SLIDE_DEFAULTS.map(function(d){ return {img: '', title: d.title}; });
   renderSliderEditor();
 }
 
@@ -873,7 +873,7 @@ function renderSliderEditor() {
     return '<div class="slide-item" id="slide-item-'+i+'">' +
       '<div class="slide-item-header">' +
         '<img class="slide-thumb" src="'+(hasImg?s.img:'')+'" alt="" style="'+(hasImg?'':'opacity:.3')+'">' +
-        '<span class="slide-item-num">Slide '+(i+1)+' · '+esc(s.tag)+'</span>' +
+        '<span class="slide-item-num">Slide '+(i+1)+(s.title?' · '+esc(s.title.slice(0,28)):'')+' </span>' +
         '<button class="slide-toggle" onclick="toggleSlide('+i+')">Editar ▾</button>' +
         '<button class="db" onclick="removeSlide('+i+')" style="padding:5px 10px" title="Remover">✕</button>' +
       '</div>' +
@@ -882,19 +882,11 @@ function renderSliderEditor() {
           '<img class="slide-img-preview" id="slide-prev-'+i+'" src="'+(hasImg?s.img:'')+'" alt="" style="'+(hasImg?'':'opacity:.25')+'">' +
           '<div class="slide-img-drop">' +
             '<input type="file" accept="image/*" onchange="onSlideImgSelect(this,'+i+')">' +
-            '<p><strong>Clique para enviar imagem</strong>JPG/PNG/WEBP · máx. 1 MB<br><span style="font-size:10px;color:var(--accent2)">'+(hasImg?'✓ Imagem carregada':'Nenhuma imagem')+'</span></p>' +
+            '<p><strong>Clique para enviar imagem</strong><br>JPG/PNG/WEBP · máx. 10 MB<br><span style="font-size:10px;color:var(--accent2)">'+(hasImg?'✓ Imagem carregada':'Nenhuma imagem')+'</span></p>' +
           '</div>' +
         '</div>' +
-        '<div class="slide-row2">' +
-          '<input type="text" placeholder="Categoria (ex: Sports)" value="'+esc(s.tag||'')+'" oninput="sliderData['+i+'].tag=this.value">' +
-          '<input type="text" placeholder="Rating (ex: 9.1)" value="'+esc(s.rating||'')+'" oninput="sliderData['+i+'].rating=this.value">' +
-        '</div>' +
+        '<label style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);margin-bottom:6px;display:block"><b>Título</b></label>' +
         '<input type="text" placeholder="Título do slide" value="'+esc(s.title||'')+'" oninput="sliderData['+i+'].title=this.value">' +
-        '<input type="text" placeholder="Meta (ex: 2024 · 30s spot)" value="'+esc(s.meta||'')+'" oninput="sliderData['+i+'].meta=this.value">' +
-        '<div class="slide-badge-row">' +
-          '<input type="color" value="'+(s.badgeColor||'#d92b3a')+'" oninput="sliderData['+i+'].badgeColor=this.value">' +
-          '<input type="text" placeholder="Badge (ex: SP)" value="'+esc(s.badge||'')+'" oninput="sliderData['+i+'].badge=this.value" maxlength="4">' +
-        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -915,16 +907,12 @@ function removeSlide(idx) {
 }
 
 function addSlide() {
-  sliderData.push({tag:'Novo',title:'Novo slide',meta:'2024',badge:'AI',badgeColor:'#d92b3a',rating:'',img:''});
+  sliderData.push({img:'', title:'Novo slide'});
   renderSliderEditor();
-  var items = document.querySelectorAll('.slide-item');
-  var last = items[items.length-1];
-  if (last) {
-    var idx = sliderData.length - 1;
-    document.getElementById('slide-body-'+idx).classList.add('open');
-    document.querySelector('#slide-item-'+idx+' .slide-toggle').textContent = 'Fechar ▴';
-    last.scrollIntoView({behavior:'smooth', block:'center'});
-  }
+  var idx = sliderData.length - 1;
+  document.getElementById('slide-body-'+idx).classList.add('open');
+  document.querySelector('#slide-item-'+idx+' .slide-toggle').textContent = 'Fechar ▴';
+  document.getElementById('slide-item-'+idx).scrollIntoView({behavior:'smooth', block:'center'});
 }
 
 function onSlideImgSelect(input, idx) {
@@ -941,6 +929,7 @@ function onSlideImgSelect(input, idx) {
         headers: {'Content-Type':'application/json','Authorization':'Bearer '+token},
         body: JSON.stringify({data: e.target.result, folder: 'cinematic/slider'})
       });
+      if (r.status === 401) { doLogout(); return; }
       var d = await r.json();
       if (!d.url) throw new Error(d.error || 'Erro no upload');
       sliderData[idx].img = d.url;
@@ -949,7 +938,7 @@ function onSlideImgSelect(input, idx) {
       var thumb = document.querySelector('#slide-item-'+idx+' .slide-thumb');
       if (thumb) { thumb.src = d.url; thumb.style.opacity = '1'; }
       if (span) span.textContent = '✓ Imagem enviada ao Cloudinary';
-      toast('✓ Slide '+( idx+1)+' enviado');
+      await saveSlider();
     } catch(err) {
       if (span) span.textContent = 'Nenhuma imagem';
       toast(err.message, 'err');
