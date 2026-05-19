@@ -121,8 +121,13 @@
   .save-card-btn { background:var(--accent); border:none; border-radius:8px; padding:9px 22px; font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#fff; cursor:pointer; transition:background .2s; margin-top:4px; }
   .save-card-btn:hover { background:var(--accent2); }
   /* Slider section */
-  .slide-item { background:var(--surface2,#16112a); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; }
+  .slide-item { background:var(--surface2,#16112a); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; transition:opacity .15s,box-shadow .15s; }
+  .slide-item.is-dragging { opacity:.3; }
+  .slide-item.drag-over { border-color:var(--accent); box-shadow:0 0 0 2px rgba(124,58,237,.35); }
   .slide-item-header { display:flex; align-items:center; gap:12px; margin-bottom:0; }
+  .slide-drag-handle { cursor:grab; color:var(--muted); font-size:18px; line-height:1; flex-shrink:0; user-select:none; padding:2px 4px; border-radius:4px; transition:color .15s; }
+  .slide-drag-handle:hover { color:var(--fg); }
+  .slide-drag-handle:active { cursor:grabbing; }
   .slide-thumb { width:54px; height:76px; object-fit:cover; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid var(--border); flex-shrink:0; }
   .slide-item-num { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; flex:1; }
   .slide-toggle { background:rgba(255,255,255,0.06); border:1px solid var(--border); border-radius:6px; padding:5px 12px; font-size:11px; color:var(--muted); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; }
@@ -872,6 +877,7 @@ function renderSliderEditor() {
     var hasImg = !!(s.img && s.img.length > 10);
     return '<div class="slide-item" id="slide-item-'+i+'">' +
       '<div class="slide-item-header">' +
+        '<span class="slide-drag-handle" title="Arrastar para reordenar">⠿</span>' +
         '<img class="slide-thumb" src="'+(hasImg?s.img:'')+'" alt="" style="'+(hasImg?'':'opacity:.3')+'">' +
         '<span class="slide-item-num">Slide '+(i+1)+(s.title?' · '+esc(s.title.slice(0,28)):'')+' </span>' +
         '<button class="slide-toggle" onclick="toggleSlide('+i+')">Editar ▾</button>' +
@@ -890,6 +896,51 @@ function renderSliderEditor() {
       '</div>' +
     '</div>';
   }).join('');
+  initSliderDrag();
+}
+
+var _dragIdx = null;
+
+function initSliderDrag() {
+  document.querySelectorAll('.slide-item').forEach(function(item, i) {
+    var header = item.querySelector('.slide-item-header');
+    header.setAttribute('draggable', 'true');
+
+    header.addEventListener('dragstart', function(e) {
+      _dragIdx = i;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function(){ item.classList.add('is-dragging'); }, 0);
+    });
+
+    header.addEventListener('dragend', function() {
+      item.classList.remove('is-dragging');
+      document.querySelectorAll('.slide-item').forEach(function(el) {
+        el.classList.remove('drag-over');
+      });
+      _dragIdx = null;
+    });
+
+    item.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (_dragIdx !== null && _dragIdx !== i) item.classList.add('drag-over');
+    });
+
+    item.addEventListener('dragleave', function(e) {
+      if (!item.contains(e.relatedTarget)) item.classList.remove('drag-over');
+    });
+
+    item.addEventListener('drop', function(e) {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      if (_dragIdx === null || _dragIdx === i) return;
+      var from = _dragIdx;
+      _dragIdx = null;
+      var moved = sliderData.splice(from, 1)[0];
+      sliderData.splice(i, 0, moved);
+      renderSliderEditor();
+      saveSlider();
+    });
+  });
 }
 
 function toggleSlide(idx) {
