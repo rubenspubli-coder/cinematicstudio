@@ -12,6 +12,9 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 console.log('API_KEY length:', API_KEY.length);
 console.log('DATABASE_URL set:', !!DATABASE_URL);
+const _cldFound = Object.keys(process.env).filter(k => k.startsWith('CLOUDINARY'));
+console.log('CLOUDINARY vars found:', _cldFound.length ? _cldFound.join(', ') : 'NONE');
+console.log('CLOUDINARY_API_KEY defined:', 'CLOUDINARY_API_KEY' in process.env, '| length:', (process.env.CLOUDINARY_API_KEY||'').length);
 
 const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
 
