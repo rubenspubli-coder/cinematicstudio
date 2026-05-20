@@ -2440,7 +2440,7 @@ function csUpdatePanelUser(){
   var upgradeBtn=document.querySelector('.up-upgrade-btn');
   if(upgradeBtn) upgradeBtn.style.display=(u.plan==='enterprise')?'none':'';
   var buyBtn=document.getElementById('up-buy-btn');
-  if(buyBtn) buyBtn.style.display=(u.plan==='enterprise'||!u.plan||u.plan==='free')?'none':'';
+  if(buyBtn) buyBtn.style.display=(!u.plan||u.plan==='free')?'none':'';
   csUpdateRing();
 }
 

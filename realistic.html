@@ -1048,10 +1048,7 @@ boot();
     var el=document.getElementById('agent-cr-num');
     if(el) el.textContent=(total>=999000)?'∞':remaining;
     var buyBtn=document.getElementById('agent-buy-btn');
-    if(buyBtn){
-      var showBuy=total<999000&&remaining<20&&u.plan&&u.plan!=='free';
-      buyBtn.style.display=showBuy?'flex':'none';
-    }
+    if(buyBtn) buyBtn.style.display=(u.plan&&u.plan!=='free')?'flex':'none';
     var fill=document.getElementById('agent-cr-fill');
     if(fill&&total>0){
       var pct=remaining/total;
