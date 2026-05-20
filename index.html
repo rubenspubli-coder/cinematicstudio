@@ -808,6 +808,8 @@ section { position: relative; }
 .up-cancel-link:hover { color:#f87171; }
 .up-logout-btn { width:100%; background:rgba(255,255,255,.04); border:1px solid var(--line-2); border-radius:10px; padding:11px; font-size:14px; color:var(--muted); cursor:pointer; font-family:inherit; transition:background .2s; }
 .up-logout-btn:hover { background:rgba(255,255,255,.08); color:var(--ink); }
+.up-buy-btn { width:100%; background:rgba(245,176,86,.1); border:1px solid rgba(245,176,86,.35); border-radius:10px; padding:12px; font-size:14px; font-weight:700; color:var(--amber); cursor:pointer; font-family:inherit; margin-bottom:10px; transition:all .2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.up-buy-btn:hover { background:rgba(245,176,86,.18); border-color:rgba(245,176,86,.6); }
 
 /* ---------- pricing ---------- */
 .pricing-grid-3 { grid-template-columns: repeat(3,1fr) !important; }
@@ -1591,6 +1593,7 @@ body.loaded { opacity: 1; }
 
   <div class="up-section" style="border-bottom:none">
     <button class="up-upgrade-btn" onclick="closeUserPanel();document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">⬆ Fazer Upgrade de Plano</button>
+    <button class="up-buy-btn" id="up-buy-btn" onclick="buyMoreCredits()">⚡ Comprar mais créditos <span style="font-size:11px;font-weight:400;opacity:.75">+100 por R$97</span></button>
     <button class="up-logout-btn" onclick="doLogout()">Sair da conta</button>
     <a class="up-cancel-link" onclick="confirmCancelSub()">Cancelar assinatura</a>
   </div>
@@ -2436,6 +2439,8 @@ function csUpdatePanelUser(){
   document.getElementById('up-plan-badge').textContent=planLabels[u.plan]||u.plan||'Free';
   var upgradeBtn=document.querySelector('.up-upgrade-btn');
   if(upgradeBtn) upgradeBtn.style.display=(u.plan==='enterprise')?'none':'';
+  var buyBtn=document.getElementById('up-buy-btn');
+  if(buyBtn) buyBtn.style.display=(u.plan==='enterprise'||!u.plan||u.plan==='free')?'none':'';
   csUpdateRing();
 }
 
@@ -2470,6 +2475,11 @@ async function uploadAvatar(input){
     }
   };
   reader.readAsDataURL(file);
+}
+function buyMoreCredits(){
+  // URL da página de compra de créditos avulsos (Kiwify ou similar)
+  var buyUrl = 'https://pay.kiwify.com.br/creditos-cinematic'; // ← atualizar com link real
+  window.open(buyUrl,'_blank');
 }
 function confirmCancelSub(){
   if(confirm('Tem certeza que deseja cancelar sua assinatura? Entre em contato com o suporte para processar o cancelamento.')){

@@ -317,6 +317,9 @@ header {
   .agent-cr-btn svg { width:38px; height:38px; transform:rotate(-90deg); }
   .agent-cr-bg  { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:3; }
   .agent-cr-fill{ fill:none; stroke:#f5b056; stroke-width:3; stroke-linecap:round; stroke-dasharray:87.96; stroke-dashoffset:87.96; transition:stroke-dashoffset .6s ease; }
+
+  .agent-buy-btn { display:none; align-items:center; gap:5px; background:rgba(245,176,86,.12); border:1px solid rgba(245,176,86,.35); border-radius:20px; padding:5px 12px; font-size:11px; font-weight:700; color:#f5b056; cursor:pointer; font-family:'Barlow Condensed',sans-serif; letter-spacing:.04em; white-space:nowrap; transition:all .2s; text-decoration:none; }
+  .agent-buy-btn:hover { background:rgba(245,176,86,.22); border-color:rgba(245,176,86,.6); }
   .agent-cr-num { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; font-weight:800; color:#f5b056; font-family:'Barlow Condensed',sans-serif; pointer-events:none; line-height:1; }
 </style>
 </head>
@@ -981,6 +984,11 @@ boot();
     var total=u.credits_total||0;
     var el=document.getElementById('agent-cr-num');
     if(el) el.textContent=(total>=999000)?'∞':remaining;
+    var buyBtn=document.getElementById('agent-buy-btn');
+    if(buyBtn){
+      var showBuy=total<999000&&remaining<20&&u.plan&&u.plan!=='free';
+      buyBtn.style.display=showBuy?'flex':'none';
+    }
     var fill=document.getElementById('agent-cr-fill');
     if(fill&&total>0){
       var pct=remaining/total;
