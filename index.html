@@ -746,7 +746,7 @@ section { position: relative; }
 .cr-icon { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; color:var(--amber); pointer-events:none; }
 .nav-user-btn { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid var(--line-2); border-radius:20px; padding:4px 12px 4px 5px; cursor:pointer; color:var(--ink); font-size:13px; font-family:inherit; transition:background .2s; white-space:nowrap; }
 .nav-user-btn:hover { background:rgba(255,255,255,0.12); }
-.nav-user-avatar { width:24px; height:24px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#000; flex-shrink:0; }
+.nav-user-avatar { width:24px; height:24px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#000; flex-shrink:0; background-size:cover; background-position:center; overflow:hidden; }
 
 /* ---------- modais auth ---------- */
 .auth-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
@@ -775,7 +775,17 @@ section { position: relative; }
 .user-panel { position:fixed; top:0; right:0; bottom:0; width:320px; max-width:100vw; background:var(--bg); border-left:1px solid var(--line-2); z-index:201; transform:translateX(100%); transition:transform .3s cubic-bezier(.2,.7,.2,1); overflow-y:auto; }
 .user-panel.open { transform:translateX(0); }
 .up-head { padding:24px 20px 16px; border-bottom:1px solid var(--line-2); display:flex; align-items:center; gap:12px; }
-.up-avatar { width:44px; height:44px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#000; flex-shrink:0; }
+.up-avatar-wrap { position:relative; flex-shrink:0; cursor:pointer; width:64px; height:64px; }
+.up-avatar { width:64px; height:64px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; color:#000; background-size:cover; background-position:center; overflow:hidden; transition:filter .2s; }
+.up-avatar-wrap:hover .up-avatar { filter:brightness(.65); }
+.up-avatar-cam { position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s; pointer-events:none; }
+.up-avatar-cam svg { width:22px; height:22px; color:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+.up-avatar-wrap:hover .up-avatar-cam { opacity:1; }
+.up-avatar-input { position:absolute; inset:0; opacity:0; cursor:pointer; border-radius:50%; width:100%; height:100%; }
+.up-avatar-uploading .up-avatar { filter:brightness(.4); }
+.up-avatar-spinner { position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.up-avatar-spinner-ring { width:24px; height:24px; border:3px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:none; }
+.up-avatar-uploading .up-avatar-spinner-ring { display:block; }
 .up-name { font-size:15px; font-weight:600; color:var(--ink); }
 .up-email { font-size:12px; color:var(--muted); margin-top:1px; }
 .up-close { margin-left:auto; background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; }
@@ -1538,7 +1548,17 @@ body.loaded { opacity: 1; }
 <div class="user-panel-overlay" id="up-overlay" onclick="closeUserPanel()"></div>
 <aside class="user-panel" id="user-panel">
   <div class="up-head">
-    <div class="up-avatar" id="up-avatar">?</div>
+    <div class="up-avatar-wrap" id="up-avatar-wrap" title="Clique para trocar a foto">
+      <div class="up-avatar" id="up-avatar">?</div>
+      <div class="up-avatar-cam">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </div>
+      <div class="up-avatar-spinner"><div class="up-avatar-spinner-ring"></div></div>
+      <input class="up-avatar-input" type="file" accept="image/*" id="up-avatar-input" onchange="uploadAvatar(this)">
+    </div>
     <div>
       <div class="up-name" id="up-name">Usuário</div>
       <div class="up-email" id="up-email">—</div>
@@ -2234,7 +2254,14 @@ function csUpdateHeader(){
   if(!logged)return;
   var u=csUser();
   var init=(u.name||u.email||'?')[0].toUpperCase();
-  document.getElementById('nav-user-avatar').textContent=init;
+  var navAv=document.getElementById('nav-user-avatar');
+  if(u.avatar_url){
+    navAv.style.backgroundImage='url('+u.avatar_url+')';
+    navAv.textContent='';
+  } else {
+    navAv.style.backgroundImage='';
+    navAv.textContent=init;
+  }
   document.getElementById('nav-user-name').textContent=(u.name||u.email||'Usuário').split(' ')[0];
   csUpdateRing();
 }
@@ -2395,7 +2422,14 @@ function closeUserPanel(){
 function csUpdatePanelUser(){
   var u=csUser();
   var init=(u.name||u.email||'?')[0].toUpperCase();
-  document.getElementById('up-avatar').textContent=init;
+  var avEl=document.getElementById('up-avatar');
+  if(u.avatar_url){
+    avEl.style.backgroundImage='url('+u.avatar_url+')';
+    avEl.textContent='';
+  } else {
+    avEl.style.backgroundImage='';
+    avEl.textContent=init;
+  }
   document.getElementById('up-name').textContent=u.name||'Usuário';
   document.getElementById('up-email').textContent=u.email||'—';
   var planLabels={free:'Free',starter:'Starter',premium:'Premium',enterprise:'Enterprise'};
@@ -2403,6 +2437,39 @@ function csUpdatePanelUser(){
   var upgradeBtn=document.querySelector('.up-upgrade-btn');
   if(upgradeBtn) upgradeBtn.style.display=(u.plan==='enterprise')?'none':'';
   csUpdateRing();
+}
+
+async function uploadAvatar(input){
+  var file=input.files&&input.files[0];
+  if(!file)return;
+  if(file.size>5*1024*1024){alert('A imagem deve ter no máximo 5 MB.');input.value='';return;}
+  var wrap=document.getElementById('up-avatar-wrap');
+  wrap.classList.add('up-avatar-uploading');
+  var reader=new FileReader();
+  reader.onload=async function(e){
+    var dataUrl=e.target.result;
+    try{
+      var r=await fetch('/user/avatar',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+csToken()},
+        body:JSON.stringify({data:dataUrl})
+      });
+      var json=await r.json();
+      if(json.ok&&json.user){
+        localStorage.setItem(CS_USER_KEY,JSON.stringify(json.user));
+        csUpdateHeader();
+        csUpdatePanelUser();
+      } else {
+        alert(json.error||'Erro ao fazer upload da foto.');
+      }
+    }catch(err){
+      alert('Erro de conexão ao enviar foto.');
+    }finally{
+      wrap.classList.remove('up-avatar-uploading');
+      input.value='';
+    }
+  };
+  reader.readAsDataURL(file);
 }
 function confirmCancelSub(){
   if(confirm('Tem certeza que deseja cancelar sua assinatura? Entre em contato com o suporte para processar o cancelamento.')){

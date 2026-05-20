@@ -191,8 +191,10 @@ async function initDB() {
         credits_used INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT NOW(),
         reset_token VARCHAR(128),
-        reset_token_expires TIMESTAMP
+        reset_token_expires TIMESTAMP,
+        avatar_url VARCHAR(500) DEFAULT ''
       );
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500) DEFAULT '';
     `);
 
     const exists = await pool.query('SELECT id FROM admin_users WHERE username=$1', ['admin']);
@@ -596,7 +598,7 @@ const server = http.createServer(async (req, res) => {
     if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
     try{
       const r=await pool.query(
-        'SELECT id,email,name,plan,credits_total,credits_used FROM users WHERE email=$1 AND password_hash=$2',
+        'SELECT id,email,name,plan,credits_total,credits_used,avatar_url FROM users WHERE email=$1 AND password_hash=$2',
         [email.toLowerCase(),sha256(password)]
       );
       if(r.rows.length===0)return sendJSON(res,401,{error:'E-mail ou senha incorretos'});
@@ -647,9 +649,57 @@ const server = http.createServer(async (req, res) => {
     if(!payload||!payload.userId)return sendJSON(res,401,{error:'Token inválido'});
     if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
     try{
-      const r=await pool.query('SELECT id,email,name,plan,credits_total,credits_used,created_at FROM users WHERE id=$1',[payload.userId]);
+      const r=await pool.query('SELECT id,email,name,plan,credits_total,credits_used,avatar_url,created_at FROM users WHERE id=$1',[payload.userId]);
       if(r.rows.length===0)return sendJSON(res,404,{error:'Usuário não encontrado'});
       sendJSON(res,200,r.rows[0]);
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  // ── Upload de avatar do usuário ─────────────────────────────────────────
+  if(req.method==='POST' && url==='/user/avatar') {
+    const authH=req.headers['authorization']||'';
+    const tok=authH.startsWith('Bearer ')?authH.slice(7):null;
+    if(!tok)return sendJSON(res,401,{error:'Não autenticado'});
+    let payload;try{payload=verifyJWT(tok);}catch{return sendJSON(res,401,{error:'Token inválido'});}
+    if(!payload||!payload.userId)return sendJSON(res,401,{error:'Token inválido'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    const CLDN_CLOUD=process.env.CLOUDINARY_CLOUD_NAME;
+    const CLDN_KEY=process.env.CLOUDINARY_API_KEY;
+    const CLDN_SECRET=process.env.CLOUDINARY_API_SECRET;
+    if(!CLDN_CLOUD||!CLDN_KEY||!CLDN_SECRET)return sendJSON(res,503,{error:'Cloudinary não configurado'});
+    try{
+      const body=await parseBody(req);
+      const {data}=body;
+      if(!data)return sendJSON(res,400,{error:'Campo data ausente'});
+      const f='cinematic/avatars';
+      const ts=Math.round(Date.now()/1000);
+      const sigStr=`folder=${f}&timestamp=${ts}${CLDN_SECRET}`;
+      const sig=crypto.createHash('sha1').update(sigStr).digest('hex');
+      const boundary='cld'+crypto.randomBytes(12).toString('hex');
+      function mkPart(name,value){return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;}
+      const bodyStr=mkPart('file',data)+mkPart('api_key',CLDN_KEY)+mkPart('timestamp',String(ts))+mkPart('folder',f)+mkPart('signature',sig)+`--${boundary}--\r\n`;
+      const bodyBuf=Buffer.from(bodyStr,'binary');
+      const opts={hostname:'api.cloudinary.com',path:`/v1_1/${CLDN_CLOUD}/image/upload`,method:'POST',
+        headers:{'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':bodyBuf.length}};
+      await new Promise((resolve,reject)=>{
+        const apiReq=https.request(opts,apiRes=>{
+          const chunks=[];
+          apiRes.on('data',c=>chunks.push(c));
+          apiRes.on('end',async()=>{
+            try{
+              const j=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+              if(!j.secure_url){sendJSON(res,500,{error:j.error?.message||'Upload falhou'});return resolve();}
+              await pool.query('UPDATE users SET avatar_url=$1 WHERE id=$2',[j.secure_url,payload.userId]);
+              const ur=await pool.query('SELECT id,email,name,plan,credits_total,credits_used,avatar_url FROM users WHERE id=$1',[payload.userId]);
+              sendJSON(res,200,{ok:true,user:ur.rows[0]});
+            }catch(e){sendJSON(res,500,{error:e.message});}
+            resolve();
+          });
+        });
+        apiReq.on('error',err=>{sendJSON(res,500,{error:err.message});resolve();});
+        apiReq.write(bodyBuf);apiReq.end();
+      });
     }catch(e){sendJSON(res,500,{error:e.message});}
     return;
   }
