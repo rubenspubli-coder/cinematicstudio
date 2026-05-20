@@ -383,8 +383,8 @@ header {
   .agent-cr-bg  { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:3; }
   .agent-cr-fill{ fill:none; stroke:#f5b056; stroke-width:3; stroke-linecap:round; stroke-dasharray:87.96; stroke-dashoffset:87.96; transition:stroke-dashoffset .6s ease; }
 
-  .agent-buy-btn { display:none; align-items:center; gap:5px; background:rgba(245,176,86,.12); border:1px solid rgba(245,176,86,.35); border-radius:20px; padding:5px 12px; font-size:11px; font-weight:700; color:#f5b056; cursor:pointer; font-family:'Barlow Condensed',sans-serif; letter-spacing:.04em; white-space:nowrap; transition:all .2s; text-decoration:none; }
-  .agent-buy-btn:hover { background:rgba(245,176,86,.22); border-color:rgba(245,176,86,.6); }
+  .agent-buy-btn { align-items:center; background:transparent; border:1px solid rgba(255,255,255,.12); border-radius:20px; padding:4px 10px; font-size:10px; font-weight:600; color:rgba(255,255,255,.35); cursor:pointer; font-family:'Barlow Condensed',sans-serif; letter-spacing:.06em; white-space:nowrap; transition:all .25s; text-decoration:none; }
+  .agent-buy-btn:hover { border-color:rgba(245,176,86,.5); color:#f5b056; background:rgba(245,176,86,.08); }
   .agent-cr-num { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; font-weight:800; color:#f5b056; font-family:'Barlow Condensed',sans-serif; pointer-events:none; line-height:1; }
 </style>
 </head>
@@ -411,6 +411,7 @@ header {
       </svg>
       <span class="agent-cr-num" id="agent-cr-num">—</span>
     </button>
+    <a class="agent-buy-btn" id="agent-buy-btn" href="https://pay.kiwify.com.br/creditos-cinematic" target="_blank" title="+100 créditos por R$97" style="display:none">+ créditos</a>
   </div>
   <a href="index.html" id="home-btn" title="Home">
     <svg viewBox="0 0 16 16" fill="none"><path d="M2 6.5L8 2L14 6.5V14H10V10H6V14H2V6.5Z" stroke="#777" stroke-width="1.3" stroke-linejoin="round"/></svg>
