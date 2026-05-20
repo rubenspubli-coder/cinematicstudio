@@ -1956,7 +1956,7 @@ body.loaded { opacity: 1; }
       </div>
       <div class="foot-col">
         <h6>Recursos</h6>
-        <a href="#">Biblioteca de prompts</a>
+        <a href="https://promptshouse.com/" target="_blank" rel="noopener">Conheça Prompts House</a>
         <a href="#">Comunidade</a>
       </div>
       <div class="foot-col">
@@ -2400,6 +2400,8 @@ function csUpdatePanelUser(){
   document.getElementById('up-email').textContent=u.email||'—';
   var planLabels={free:'Free',starter:'Starter',premium:'Premium',enterprise:'Enterprise'};
   document.getElementById('up-plan-badge').textContent=planLabels[u.plan]||u.plan||'Free';
+  var upgradeBtn=document.querySelector('.up-upgrade-btn');
+  if(upgradeBtn) upgradeBtn.style.display=(u.plan==='enterprise')?'none':'';
   csUpdateRing();
 }
 function confirmCancelSub(){

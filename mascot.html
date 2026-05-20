@@ -377,6 +377,13 @@ header {
 .glass-bar #sb:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
 .glass-bar #sb svg { width: 15px; height: 15px; }
 
+
+  /* ── Anel de créditos no header ── */
+  .agent-cr-btn { position:relative; width:38px; height:38px; background:none; border:none; cursor:pointer; padding:0; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .agent-cr-btn svg { width:38px; height:38px; transform:rotate(-90deg); }
+  .agent-cr-bg  { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:3; }
+  .agent-cr-fill{ fill:none; stroke:#f5b056; stroke-width:3; stroke-linecap:round; stroke-dasharray:87.96; stroke-dashoffset:87.96; transition:stroke-dashoffset .6s ease; }
+  .agent-cr-num { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; font-weight:800; color:#f5b056; font-family:'Barlow Condensed',sans-serif; pointer-events:none; line-height:1; }
 </style>
 </head>
 <body>
@@ -394,7 +401,15 @@ header {
   <button id="toggle-sb" title="Histórico">
     <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1.5" width="4.5" height="13" rx="1.5" fill="#555"></rect><rect x="8" y="3.5" width="7" height="1.8" rx=".9" fill="#555"></rect><rect x="8" y="7.1" width="7" height="1.8" rx=".9" fill="#555"></rect><rect x="8" y="10.7" width="7" height="1.8" rx=".9" fill="#555"></rect></svg>
   </button>
-  <div class="status"><span style="font-family:&#39;Barlow Condensed&#39;,sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;color:#FFDC1B;background:transparent;border:1px solid #FFDC1B;border-radius:20px;padding:3px 10px;display:flex;align-items:center;gap:5px;"><div class="dot"></div>AI STUDIO</span></div>
+  <div class="status">
+    <button class="agent-cr-btn" id="agent-cr-btn" onclick="window.location.href='/#pricing'" title="Seus créditos — clique para ver planos">
+      <svg viewBox="0 0 36 36">
+        <circle class="agent-cr-bg" cx="18" cy="18" r="14"/>
+        <circle class="agent-cr-fill" id="agent-cr-fill" cx="18" cy="18" r="14"/>
+      </svg>
+      <span class="agent-cr-num" id="agent-cr-num">—</span>
+    </button>
+  </div>
   <a href="index.html" id="home-btn" title="Home">
     <svg viewBox="0 0 16 16" fill="none"><path d="M2 6.5L8 2L14 6.5V14H10V10H6V14H2V6.5Z" stroke="#777" stroke-width="1.3" stroke-linejoin="round"/></svg>
   </a>
@@ -1079,6 +1094,34 @@ boot();
   var user=JSON.parse(localStorage.getItem("cs_user")||"{}");
   if(!tok||!user.plan||user.plan==="free"){
     window.location.href="/#pricing";
+  }
+})();
+</script>
+<script>
+(function(){
+  function updateAgentRing(u){
+    var remaining=Math.max(0,(u.credits_total||0)-(u.credits_used||0));
+    var total=u.credits_total||0;
+    var el=document.getElementById('agent-cr-num');
+    if(el) el.textContent=(total>=999000)?'∞':remaining;
+    var fill=document.getElementById('agent-cr-fill');
+    if(fill&&total>0){
+      var pct=remaining/total;
+      fill.style.strokeDashoffset=(87.96*(1-pct)).toFixed(2);
+    }
+  }
+  try{
+    var u=JSON.parse(localStorage.getItem('cs_user')||'{}');
+    updateAgentRing(u);
+  }catch(e){}
+  var tok=localStorage.getItem('cs_token');
+  if(tok){
+    fetch('/user/me',{headers:{'Authorization':'Bearer '+tok}})
+      .then(function(r){return r.json();})
+      .then(function(u){
+        localStorage.setItem('cs_user',JSON.stringify(u));
+        updateAgentRing(u);
+      }).catch(function(){});
   }
 })();
 </script>
