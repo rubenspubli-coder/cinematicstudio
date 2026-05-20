@@ -69,10 +69,10 @@ body {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 1100px 750px at 90% -5%,  rgba(245,176,86,0.16), transparent 62%),
-    radial-gradient(ellipse 800px 700px at -8% 48%,   rgba(201,125,74,0.11), transparent 60%),
-    radial-gradient(ellipse 700px 550px at 55% 102%,  rgba(245,158,50,0.09), transparent 58%),
-    radial-gradient(ellipse 500px 400px at 50% 50%,   rgba(245,176,86,0.04), transparent 55%);
+    radial-gradient(ellipse 1200px 820px at 92% -2%,  rgba(245,176,86,0.26), transparent 62%),
+    radial-gradient(ellipse 900px 750px at -10% 48%,  rgba(201,125,74,0.18), transparent 60%),
+    radial-gradient(ellipse 750px 600px at 55% 104%,  rgba(245,158,50,0.15), transparent 58%),
+    radial-gradient(ellipse 600px 450px at 50% 50%,   rgba(245,176,86,0.07), transparent 55%);
   animation: ambient-breathe 12s ease-in-out infinite alternate;
 }
 
@@ -1493,7 +1493,10 @@ body.loaded { opacity: 1; }
       <button class="auth-btn" id="login-btn" onclick="doLogin()">Entrar no Studio</button>
       <div class="auth-links">
         <a onclick="showAuthScreen('forgot')">Esqueceu a senha?</a>
-        <a onclick="showAuthScreen('register')">Criar conta</a>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line-2);text-align:center">
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px">Ainda não tem conta?</p>
+        <button class="auth-btn" onclick="showAuthScreen('register')" style="background:rgba(245,176,86,0.12);border:1.5px solid rgba(245,176,86,0.4);color:var(--amber);font-size:14px">✦ Criar minha conta grátis</button>
       </div>
     </div>
 
@@ -1587,8 +1590,9 @@ body.loaded { opacity: 1; }
     </div>
     <div class="nav-auth" id="nav-auth">
       <!-- Estado: não logado -->
-      <div id="nav-guest">
+      <div id="nav-guest" style="display:flex;align-items:center;gap:8px">
         <button class="btn btn-ghost nav-login-btn" onclick="openAuthModal('login')" style="padding:9px 18px;font-size:13px">Entrar</button>
+        <a href="#pricing" class="btn btn-primary" style="padding:9px 20px;font-size:13px;font-weight:700;text-decoration:none">Assinar</a>
       </div>
       <!-- Estado: logado -->
       <div id="nav-user" style="display:none;align-items:center;gap:10px">
@@ -1610,7 +1614,7 @@ body.loaded { opacity: 1; }
 
 <!-- HERO -->
 <header class="hero">
-  <video id="hero-video" class="hero-video" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260418_115655_b4d9cd77-feed-43cd-a198-af78ebdf1f7a.mp4" muted playsinline autoplay loop preload="auto"></video>
+  <video id="hero-video" class="hero-video" muted playsinline autoplay loop preload="auto"></video>
   <div class="hero-overlay"></div>
   <div class="hero-grain"></div>
 
@@ -1829,9 +1833,10 @@ body.loaded { opacity: 1; }
         <div class="plan-credits-badge">100 créditos/mês</div>
         <ul class="features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>50 pedidas completas de agente</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Acesso a todos os 7 agentes premium</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>6 agentes premium (Sports, Illusion, Mascot, Lettering, Live Action, Realistic)</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Biblioteca de prompts proprietários</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Comunidade fechada</li>
+          <li style="opacity:.45"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#666"><path d="M18 6 6 18M6 6l12 12"/></svg><span style="text-decoration:line-through;color:var(--muted)">Extrator de Prompt</span></li>
         </ul>
         <button class="btn btn-ghost cta" onclick="openRegisterWithPlan('starter')">Começar Agora <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
       </div>
@@ -2421,9 +2426,7 @@ function csGuardAgentLinks(){
       e.preventDefault();
       var pricing=document.getElementById('pricing');
       if(pricing) pricing.scrollIntoView({behavior:'smooth'});
-      if(!csLoggedIn()){
-        setTimeout(function(){ openAuthModal('login'); },600);
-      }
+      // Não abre modal — apenas rola para os planos
     });
   });
 }

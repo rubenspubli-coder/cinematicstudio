@@ -256,9 +256,11 @@
     <div class="st">Slider de Imagens — Showcase</div>
     <div class="card">
       <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">Imagens do slider coverflow na seção "Showcase". Clique em cada slide para editar. Recomendado: imagens no formato retrato (3:4), mín. 480×680px, máx. 1MB.</p>
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="addb" onclick="addSlide()" style="flex:1">+ Adicionar Slide</button>
+        <button class="sb" onclick="saveSlider()" style="flex:1">SALVAR SLIDER</button>
+      </div>
       <div id="slider-editor"></div>
-      <button class="addb" onclick="addSlide()">+ Adicionar slide</button>
-      <button class="sb" onclick="saveSlider()">Salvar Slider</button>
     </div>
 
     <div class="st">Cards da Home</div>
@@ -786,12 +788,11 @@ function removeSlide(idx) {
 }
 
 function addSlide() {
-  sliderData.push({img:'', title:'Novo slide'});
+  sliderData.unshift({img:'', title:'Novo slide'}); // adiciona como primeiro
   renderSliderEditor();
-  var idx = sliderData.length - 1;
-  document.getElementById('slide-body-'+idx).classList.add('open');
-  document.querySelector('#slide-item-'+idx+' .slide-toggle').textContent = 'Fechar ▴';
-  document.getElementById('slide-item-'+idx).scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('slide-body-0').classList.add('open');
+  document.querySelector('#slide-item-0 .slide-toggle').textContent = 'Fechar ▴';
+  document.getElementById('slide-item-0').scrollIntoView({behavior:'smooth', block:'center'});
 }
 
 function onSlideImgSelect(input, idx) {

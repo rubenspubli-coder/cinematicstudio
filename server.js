@@ -201,6 +201,22 @@ async function initDB() {
       console.log('Default admin created (admin/pablo2025)');
     }
 
+    // Usuário master
+    const masterExists = await pool.query('SELECT id FROM users WHERE email=$1', ['rubenspubli@gmail.com']);
+    if (masterExists.rows.length === 0) {
+      await pool.query(
+        'INSERT INTO users(email,name,password_hash,plan,credits_total,credits_used) VALUES($1,$2,$3,$4,$5,$6)',
+        ['rubenspubli@gmail.com','Rubens',sha256('203040Rubens'),'enterprise',999999,0]
+      );
+      console.log('Master user created: rubenspubli@gmail.com');
+    } else {
+      // Garantir que o master sempre tem enterprise com créditos ilimitados
+      await pool.query(
+        'UPDATE users SET plan=$1,credits_total=$2,name=$3,password_hash=$4 WHERE email=$5',
+        ['enterprise',999999,'Rubens',sha256('203040Rubens'),'rubenspubli@gmail.com']
+      );
+    }
+
     const defaults = {
       headline: 'Cinematic<br><span class="gradient-text">AI Studio</span>',
       subheadline: 'Agentes inteligentes que automatizam processos<br>e elevam o padrão profissional e performance do criativo/campanha.',
@@ -697,6 +713,8 @@ const server = http.createServer(async (req, res) => {
           if(ur.rows.length===0){res.writeHead(404,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Usuário não encontrado'}));return;}
           const u=ur.rows[0];
           if(u.plan==='free'||!u.plan){res.writeHead(402,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Plano ativo necessário',code:'NO_PLAN'}));return;}
+          // Extrator disponível apenas para Premium e Enterprise
+          if(agentPart==='extraidor'&&u.plan==='starter'){res.writeHead(403,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'O Extrator de Prompt está disponível apenas nos planos Premium e Enterprise.',code:'PLAN_REQUIRED'}));return;}
           if((u.credits_total-u.credits_used)<2){res.writeHead(402,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Créditos insuficientes',code:'NO_CREDITS'}));return;}
           await pool.query('UPDATE users SET credits_used=credits_used+2 WHERE id=$1',[uPayload.userId]);
         }catch(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message}));return;}

@@ -2270,6 +2270,11 @@ boot();
   var user=JSON.parse(localStorage.getItem("cs_user")||"{}");
   if(!tok||!user.plan||user.plan==="free"){
     window.location.href="/#pricing";
+    return;
+  }
+  if(user.plan==="starter"){
+    alert("O Extrator de Prompt está disponível apenas nos planos Premium e Enterprise. Faça upgrade para continuar.");
+    window.location.href="/#pricing";
   }
 })();
 </script>
