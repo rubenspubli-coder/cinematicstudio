@@ -843,7 +843,7 @@ async function runUpscale() {
   try {
     const response = await fetch("/api/agent/realistic", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("cs_token") || "") },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 500,
@@ -921,7 +921,7 @@ async function send(ov) {
   try {
     const res = await fetch("/api/agent/realistic", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("cs_token") || "") },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 2500,
@@ -1013,4 +1013,13 @@ boot();
 
 >
 <!-- saved from url=(0045)file:///Users/locacao/Downloads/index_50.html -->
+<script>
+(function(){
+  var tok=localStorage.getItem("cs_token");
+  var user=JSON.parse(localStorage.getItem("cs_user")||"{}");
+  if(!tok||!user.plan||user.plan==="free"){
+    window.location.href="/#pricing";
+  }
+})();
+</script>
 </html>

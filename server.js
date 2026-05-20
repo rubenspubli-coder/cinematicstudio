@@ -181,6 +181,18 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(200) UNIQUE NOT NULL,
+        name VARCHAR(120) DEFAULT '',
+        password_hash VARCHAR(128) NOT NULL,
+        plan VARCHAR(20) DEFAULT 'free',
+        credits_total INTEGER DEFAULT 0,
+        credits_used INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        reset_token VARCHAR(128),
+        reset_token_expires TIMESTAMP
+      );
     `);
 
     const exists = await pool.query('SELECT id FROM admin_users WHERE username=$1', ['admin']);
@@ -540,7 +552,131 @@ const server = http.createServer(async (req, res) => {
 
   const url=req.url.split('?')[0];
 
-  // ── Agentes fixos ────────────────────────────────────────────────────────
+  // ── Auth usuários ─────────────────────────────────────────────────────────
+  if(req.method==='POST' && url==='/auth/register') {
+    const body=await parseBody(req);
+    const {email,password,name}=body;
+    if(!email||!password)return sendJSON(res,400,{error:'Email e senha obrigatórios'});
+    if(password.length<6)return sendJSON(res,400,{error:'Senha deve ter pelo menos 6 caracteres'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const exists=await pool.query('SELECT id FROM users WHERE email=$1',[email.toLowerCase()]);
+      if(exists.rows.length>0)return sendJSON(res,409,{error:'E-mail já cadastrado'});
+      const r=await pool.query(
+        'INSERT INTO users(email,name,password_hash,plan,credits_total,credits_used) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,email,name,plan,credits_total,credits_used',
+        [email.toLowerCase(),(name||'').trim(),sha256(password),'free',0,0]
+      );
+      const user=r.rows[0];
+      const token=signJWT({userId:user.id,email:user.email});
+      sendJSON(res,200,{ok:true,token,user});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  if(req.method==='POST' && url==='/auth/login') {
+    const body=await parseBody(req);
+    const {email,password}=body;
+    if(!email||!password)return sendJSON(res,400,{error:'Email e senha obrigatórios'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query(
+        'SELECT id,email,name,plan,credits_total,credits_used FROM users WHERE email=$1 AND password_hash=$2',
+        [email.toLowerCase(),sha256(password)]
+      );
+      if(r.rows.length===0)return sendJSON(res,401,{error:'E-mail ou senha incorretos'});
+      const user=r.rows[0];
+      const token=signJWT({userId:user.id,email:user.email});
+      sendJSON(res,200,{ok:true,token,user});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  if(req.method==='POST' && url==='/auth/forgot-password') {
+    const body=await parseBody(req);
+    const {email}=body;
+    if(!email)return sendJSON(res,400,{error:'Email obrigatório'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query('SELECT id FROM users WHERE email=$1',[email.toLowerCase()]);
+      if(r.rows.length===0)return sendJSON(res,200,{ok:true}); // não revelar se existe
+      const token=crypto.randomBytes(32).toString('hex');
+      const expires=new Date(Date.now()+3600000); // 1h
+      await pool.query('UPDATE users SET reset_token=$1,reset_token_expires=$2 WHERE email=$3',[token,expires,email.toLowerCase()]);
+      console.log('[RESET] Token para',email,':',token); // em produção: enviar por e-mail
+      sendJSON(res,200,{ok:true});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  if(req.method==='POST' && url==='/auth/reset-password') {
+    const body=await parseBody(req);
+    const {token,password}=body;
+    if(!token||!password)return sendJSON(res,400,{error:'Token e senha obrigatórios'});
+    if(password.length<6)return sendJSON(res,400,{error:'Senha deve ter pelo menos 6 caracteres'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query('SELECT id FROM users WHERE reset_token=$1 AND reset_token_expires>NOW()',[token]);
+      if(r.rows.length===0)return sendJSON(res,400,{error:'Token inválido ou expirado'});
+      await pool.query('UPDATE users SET password_hash=$1,reset_token=NULL,reset_token_expires=NULL WHERE id=$2',[sha256(password),r.rows[0].id]);
+      sendJSON(res,200,{ok:true});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  if(req.method==='GET' && url==='/user/me') {
+    const authH=req.headers['authorization']||'';
+    const tok=authH.startsWith('Bearer ')?authH.slice(7):null;
+    if(!tok)return sendJSON(res,401,{error:'Não autenticado'});
+    let payload;try{payload=verifyJWT(tok);}catch{return sendJSON(res,401,{error:'Token inválido'});}
+    if(!payload||!payload.userId)return sendJSON(res,401,{error:'Token inválido'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query('SELECT id,email,name,plan,credits_total,credits_used,created_at FROM users WHERE id=$1',[payload.userId]);
+      if(r.rows.length===0)return sendJSON(res,404,{error:'Usuário não encontrado'});
+      sendJSON(res,200,r.rows[0]);
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  if(req.method==='POST' && url==='/user/deduct') {
+    const authH=req.headers['authorization']||'';
+    const tok=authH.startsWith('Bearer ')?authH.slice(7):null;
+    if(!tok)return sendJSON(res,401,{error:'Não autenticado'});
+    let payload;try{payload=verifyJWT(tok);}catch{return sendJSON(res,401,{error:'Token inválido'});}
+    if(!payload||!payload.userId)return sendJSON(res,401,{error:'Token inválido'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query('SELECT plan,credits_total,credits_used FROM users WHERE id=$1',[payload.userId]);
+      if(r.rows.length===0)return sendJSON(res,404,{error:'Usuário não encontrado'});
+      const u=r.rows[0];
+      if(u.plan==='free'||!u.plan)return sendJSON(res,402,{error:'Plano ativo necessário',code:'NO_PLAN'});
+      if((u.credits_total-u.credits_used)<2)return sendJSON(res,402,{error:'Créditos insuficientes',code:'NO_CREDITS'});
+      await pool.query('UPDATE users SET credits_used=credits_used+2 WHERE id=$1',[payload.userId]);
+      const remaining=u.credits_total-u.credits_used-2;
+      sendJSON(res,200,{ok:true,remaining});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  // ── Admin: ativar plano do usuário (chamado após confirmação de pagamento) ─
+  if(req.method==='POST' && url==='/admin/user/plan') {
+    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const body=await parseBody(req);
+    const {email,plan}=body;
+    const planCredits={'starter':100,'premium':300,'enterprise':700};
+    if(!email||!planCredits[plan])return sendJSON(res,400,{error:'email e plano (starter/premium/enterprise) obrigatórios'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      await pool.query(
+        'UPDATE users SET plan=$1,credits_total=$2,credits_used=0 WHERE email=$3',
+        [plan,planCredits[plan],email.toLowerCase()]
+      );
+      sendJSON(res,200,{ok:true});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  // ── Agentes fixos ─────────────────────────────────────────────────────────
   if(req.method==='POST' && url.startsWith('/api/agent/')) {
     const agentPart=url.split('/api/agent/')[1];
     let body='';req.on('data',c=>body+=c);
@@ -548,6 +684,24 @@ const server = http.createServer(async (req, res) => {
       let parsed;try{parsed=JSON.parse(body);}catch{res.writeHead(400);res.end('Bad request');return;}
       const {messages,angle,proportion,description,hasImage}=parsed;
       if(!messages){res.writeHead(400);res.end('Missing messages');return;}
+
+      // ── Verificar auth e créditos do usuário ─────────────────────────────
+      const authH=req.headers['authorization']||'';
+      const tok=authH.startsWith('Bearer ')?authH.slice(7):null;
+      if(!tok){res.writeHead(401,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Login necessário',code:'AUTH_REQUIRED'}));return;}
+      let uPayload;try{uPayload=verifyJWT(tok);}catch{res.writeHead(401,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Token inválido',code:'INVALID_TOKEN'}));return;}
+      if(!uPayload||!uPayload.userId){res.writeHead(401,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Token inválido',code:'INVALID_TOKEN'}));return;}
+      if(pool){
+        try{
+          const ur=await pool.query('SELECT plan,credits_total,credits_used FROM users WHERE id=$1',[uPayload.userId]);
+          if(ur.rows.length===0){res.writeHead(404,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Usuário não encontrado'}));return;}
+          const u=ur.rows[0];
+          if(u.plan==='free'||!u.plan){res.writeHead(402,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Plano ativo necessário',code:'NO_PLAN'}));return;}
+          if((u.credits_total-u.credits_used)<2){res.writeHead(402,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'Créditos insuficientes',code:'NO_CREDITS'}));return;}
+          await pool.query('UPDATE users SET credits_used=credits_used+2 WHERE id=$1',[uPayload.userId]);
+        }catch(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message}));return;}
+      }
+
       let sp='';
       if(agentPart==='sports') sp=getSportsPrompt(angle,proportion,description,hasImage);
       else if(agentPart==='illusion') sp=PROMPT_ILLUSION;

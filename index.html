@@ -736,7 +736,74 @@ section { position: relative; }
   .coverflow-stage { height: 520px; }
 }
 
+/* ---------- nav auth ---------- */
+.nav-auth { display:flex; align-items:center; }
+.nav-login-btn { white-space:nowrap; }
+.credit-ring-btn { position:relative; width:36px; height:36px; background:none; border:none; cursor:pointer; padding:0; flex-shrink:0; }
+.credit-ring-svg { width:36px; height:36px; transform:rotate(-90deg); }
+.cr-bg { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:3; }
+.cr-fill { fill:none; stroke:var(--amber); stroke-width:3; stroke-linecap:round; stroke-dasharray:87.96; stroke-dashoffset:87.96; transition:stroke-dashoffset .6s ease; }
+.cr-icon { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:11px; color:var(--amber); pointer-events:none; }
+.nav-user-btn { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.06); border:1px solid var(--line-2); border-radius:20px; padding:4px 12px 4px 5px; cursor:pointer; color:var(--ink); font-size:13px; font-family:inherit; transition:background .2s; white-space:nowrap; }
+.nav-user-btn:hover { background:rgba(255,255,255,0.12); }
+.nav-user-avatar { width:24px; height:24px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#000; flex-shrink:0; }
+
+/* ---------- modais auth ---------- */
+.auth-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); backdrop-filter:blur(6px); z-index:200; display:none; align-items:center; justify-content:center; padding:20px; }
+.auth-overlay.open { display:flex; }
+.auth-box { background:var(--bg); border:1px solid var(--line-2); border-radius:20px; width:100%; max-width:420px; padding:36px 32px; position:relative; box-shadow:0 32px 80px rgba(0,0,0,.5); }
+.auth-box h2 { font-family:var(--film); font-size:26px; font-weight:400; margin:0 0 4px; color:var(--ink); }
+.auth-box .auth-sub { font-size:14px; color:var(--muted); margin:0 0 28px; }
+.auth-close { position:absolute; top:16px; right:18px; background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; line-height:1; }
+.auth-close:hover { color:var(--ink); }
+.auth-field { margin-bottom:14px; }
+.auth-field label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.05em; }
+.auth-field input { width:100%; background:rgba(255,255,255,.04); border:1.5px solid var(--line-2); border-radius:10px; padding:12px 14px; font-size:14px; color:var(--ink); font-family:inherit; outline:none; transition:border-color .2s; box-sizing:border-box; }
+.auth-field input:focus { border-color:var(--amber); }
+.auth-btn { width:100%; background:linear-gradient(180deg,#f7c075,#e89549); border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:700; color:#1a0e02; cursor:pointer; font-family:inherit; margin-top:4px; transition:opacity .2s; }
+.auth-btn:hover { opacity:.9; }
+.auth-btn:disabled { opacity:.5; cursor:not-allowed; }
+.auth-links { display:flex; justify-content:space-between; margin-top:18px; font-size:13px; color:var(--muted); }
+.auth-links a { color:var(--amber); cursor:pointer; text-decoration:none; }
+.auth-links a:hover { text-decoration:underline; }
+.auth-err { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); border-radius:8px; padding:10px 14px; font-size:13px; color:#fca5a5; margin-bottom:14px; display:none; }
+.auth-plan-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(245,176,86,.12); border:1px solid rgba(245,176,86,.25); border-radius:20px; padding:5px 14px; font-size:13px; color:var(--amber); font-weight:600; margin-bottom:20px; }
+
+/* ---------- painel do usuário ---------- */
+.user-panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(4px); z-index:200; display:none; }
+.user-panel-overlay.open { display:block; }
+.user-panel { position:fixed; top:0; right:0; bottom:0; width:320px; max-width:100vw; background:var(--bg); border-left:1px solid var(--line-2); z-index:201; transform:translateX(100%); transition:transform .3s cubic-bezier(.2,.7,.2,1); overflow-y:auto; }
+.user-panel.open { transform:translateX(0); }
+.up-head { padding:24px 20px 16px; border-bottom:1px solid var(--line-2); display:flex; align-items:center; gap:12px; }
+.up-avatar { width:44px; height:44px; border-radius:50%; background:var(--amber); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#000; flex-shrink:0; }
+.up-name { font-size:15px; font-weight:600; color:var(--ink); }
+.up-email { font-size:12px; color:var(--muted); margin-top:1px; }
+.up-close { margin-left:auto; background:none; border:none; font-size:22px; color:var(--muted); cursor:pointer; }
+.up-section { padding:20px; border-bottom:1px solid var(--line-2); }
+.up-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:12px; }
+.up-plan-row { display:flex; align-items:center; justify-content:space-between; }
+.up-plan-badge { background:rgba(245,176,86,.15); border:1px solid rgba(245,176,86,.3); border-radius:20px; padding:4px 14px; font-size:13px; font-weight:700; color:var(--amber); text-transform:capitalize; }
+/* anel grande de créditos */
+.up-ring-wrap { display:flex; align-items:center; gap:20px; margin-top:8px; }
+.up-ring-svg { width:80px; height:80px; transform:rotate(-90deg); flex-shrink:0; }
+.up-ring-bg { fill:none; stroke:rgba(255,255,255,.08); stroke-width:6; }
+.up-ring-fill { fill:none; stroke:var(--amber); stroke-width:6; stroke-linecap:round; stroke-dasharray:219.9; stroke-dashoffset:219.9; transition:stroke-dashoffset .8s ease; }
+.up-credit-info { flex:1; }
+.up-credit-remaining { font-size:30px; font-weight:700; color:var(--ink); line-height:1; }
+.up-credit-label { font-size:12px; color:var(--muted); margin-top:4px; }
+.up-credit-used { font-size:12px; color:var(--muted); margin-top:8px; }
+.up-upgrade-btn { width:100%; background:linear-gradient(180deg,#f7c075,#e89549); border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:700; color:#1a0e02; cursor:pointer; font-family:inherit; margin-bottom:10px; transition:opacity .2s; }
+.up-upgrade-btn:hover { opacity:.9; }
+.up-cancel-link { display:block; text-align:center; font-size:12px; color:var(--muted); cursor:pointer; padding:4px; }
+.up-cancel-link:hover { color:#f87171; }
+.up-logout-btn { width:100%; background:rgba(255,255,255,.04); border:1px solid var(--line-2); border-radius:10px; padding:11px; font-size:14px; color:var(--muted); cursor:pointer; font-family:inherit; transition:background .2s; }
+.up-logout-btn:hover { background:rgba(255,255,255,.08); color:var(--ink); }
+
 /* ---------- pricing ---------- */
+.pricing-grid-3 { grid-template-columns: repeat(3,1fr) !important; }
+@media(max-width:900px){ .pricing-grid-3 { grid-template-columns:1fr !important; } }
+.plan-credits-badge { display:inline-flex; align-items:center; background:rgba(245,176,86,.12); border:1px solid rgba(245,176,86,.25); border-radius:20px; padding:5px 16px; font-size:13px; font-weight:700; color:var(--amber); margin-bottom:20px; }
+.pricing-credit-note { margin-top:24px; font-size:12px; color:var(--muted); opacity:.75; }
 .pricing-toggle {
   display: inline-flex;
   padding: 4px;
@@ -1410,6 +1477,101 @@ body.loaded { opacity: 1; }
 </head>
 <body>
 <div class="bg-ambient" aria-hidden="true"></div>
+
+<!-- ── MODAL AUTH ─────────────────────────────────────────────────────── -->
+<div class="auth-overlay" id="auth-overlay" onclick="authOverlayClick(event)">
+  <div class="auth-box" id="auth-box">
+    <button class="auth-close" onclick="closeAuthModal()">×</button>
+
+    <!-- LOGIN -->
+    <div id="auth-screen-login">
+      <h2>Bem-vindo de volta</h2>
+      <p class="auth-sub">Acesse o Cinematic AI Studio</p>
+      <div class="auth-err" id="login-err"></div>
+      <div class="auth-field"><label>E-mail</label><input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email"></div>
+      <div class="auth-field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">Entrar no Studio</button>
+      <div class="auth-links">
+        <a onclick="showAuthScreen('forgot')">Esqueceu a senha?</a>
+        <a onclick="showAuthScreen('register')">Criar conta</a>
+      </div>
+    </div>
+
+    <!-- CADASTRO -->
+    <div id="auth-screen-register" style="display:none">
+      <h2>Criar conta</h2>
+      <p class="auth-sub">Comece a gerar imagens cinematográficas</p>
+      <div id="reg-plan-badge" class="auth-plan-badge" style="display:none">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="m12 2 2.9 7 7.1.5-5.4 4.7 1.7 7-6.3-4-6.3 4 1.7-7L2 9.5 9.1 9z"/></svg>
+        <span id="reg-plan-label">Plano Starter</span>
+      </div>
+      <div class="auth-err" id="reg-err"></div>
+      <div class="auth-field"><label>Nome</label><input type="text" id="reg-name" placeholder="Seu nome" autocomplete="name"></div>
+      <div class="auth-field"><label>E-mail</label><input type="email" id="reg-email" placeholder="seu@email.com" autocomplete="email"></div>
+      <div class="auth-field"><label>Senha</label><input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <button class="auth-btn" id="reg-btn" onclick="doRegister()">Criar minha conta</button>
+      <div class="auth-links">
+        <span></span>
+        <a onclick="showAuthScreen('login')">Já tenho conta</a>
+      </div>
+    </div>
+
+    <!-- ESQUECEU A SENHA -->
+    <div id="auth-screen-forgot" style="display:none">
+      <h2>Recuperar acesso</h2>
+      <p class="auth-sub">Enviaremos as instruções por e-mail</p>
+      <div class="auth-err" id="forgot-err"></div>
+      <div class="auth-field"><label>E-mail</label><input type="email" id="forgot-email" placeholder="seu@email.com"></div>
+      <button class="auth-btn" id="forgot-btn" onclick="doForgot()">Enviar instruções</button>
+      <div class="auth-links">
+        <a onclick="showAuthScreen('login')">← Voltar ao login</a>
+        <span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAINEL DO USUÁRIO ──────────────────────────────────────────────── -->
+<div class="user-panel-overlay" id="up-overlay" onclick="closeUserPanel()"></div>
+<aside class="user-panel" id="user-panel">
+  <div class="up-head">
+    <div class="up-avatar" id="up-avatar">?</div>
+    <div>
+      <div class="up-name" id="up-name">Usuário</div>
+      <div class="up-email" id="up-email">—</div>
+    </div>
+    <button class="up-close" onclick="closeUserPanel()">×</button>
+  </div>
+
+  <div class="up-section">
+    <div class="up-section-title">Plano</div>
+    <div class="up-plan-row">
+      <span class="up-plan-badge" id="up-plan-badge">Free</span>
+      <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="closeUserPanel();document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Ver planos</button>
+    </div>
+  </div>
+
+  <div class="up-section">
+    <div class="up-section-title">Créditos do mês</div>
+    <div class="up-ring-wrap">
+      <svg class="up-ring-svg" viewBox="0 0 80 80">
+        <circle class="up-ring-bg" cx="40" cy="40" r="35"/>
+        <circle class="up-ring-fill" id="up-ring-fill" cx="40" cy="40" r="35"/>
+      </svg>
+      <div class="up-credit-info">
+        <div class="up-credit-remaining" id="up-credit-remaining">0</div>
+        <div class="up-credit-label">créditos restantes</div>
+        <div class="up-credit-used" id="up-credit-used">0 usados de 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="up-section" style="border-bottom:none">
+    <button class="up-upgrade-btn" onclick="closeUserPanel();document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">⬆ Fazer Upgrade de Plano</button>
+    <button class="up-logout-btn" onclick="doLogout()">Sair da conta</button>
+    <a class="up-cancel-link" onclick="confirmCancelSub()">Cancelar assinatura</a>
+  </div>
+</aside>
 <!-- NAV -->
 <nav class="nav" id="main-nav">
   <div class="shell nav-inner">
@@ -1423,9 +1585,26 @@ body.loaded { opacity: 1; }
       <a href="#pricing">Planos</a>
       <a href="#mentor">Mentor</a>
     </div>
-    <a href="#pricing" class="btn btn-ghost" style="padding:10px 18px;font-size:13px">
-      Acessar Studio <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:14px;height:14px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
-    </a>
+    <div class="nav-auth" id="nav-auth">
+      <!-- Estado: não logado -->
+      <div id="nav-guest">
+        <button class="btn btn-ghost nav-login-btn" onclick="openAuthModal('login')" style="padding:9px 18px;font-size:13px">Entrar</button>
+      </div>
+      <!-- Estado: logado -->
+      <div id="nav-user" style="display:none;align-items:center;gap:10px">
+        <button class="credit-ring-btn" id="credit-ring-btn" onclick="openUserPanel()" title="Meus créditos">
+          <svg class="credit-ring-svg" viewBox="0 0 36 36">
+            <circle class="cr-bg" cx="18" cy="18" r="14"/>
+            <circle class="cr-fill" id="cr-fill" cx="18" cy="18" r="14"/>
+          </svg>
+          <span class="cr-icon">✦</span>
+        </button>
+        <button class="nav-user-btn" id="nav-user-btn" onclick="openUserPanel()">
+          <span class="nav-user-avatar" id="nav-user-avatar">?</span>
+          <span id="nav-user-name">Usuário</span>
+        </button>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -1642,43 +1821,55 @@ body.loaded { opacity: 1; }
       <h2 class="display title">Acesse o estúdio. <em>Hoje.</em></h2>
       <p class="lede" style="margin-left:auto;margin-right:auto">Um único acesso. Sete agentes. Resultado de campanha global em cada frame.</p>
     </div>
-    <div class="pricing-toggle" id="pricing-toggle" style="margin:0 auto 50px">
-      <span class="pill" id="pricing-pill"></span>
-      <button id="btn-monthly" onclick="setPlan('monthly')">Mensal</button>
-      <button id="btn-annual" class="active" onclick="setPlan('annual')">Anual <span class="save-tag">−45%</span></button>
-    </div>
-    <div class="pricing-grid" style="margin:0 auto">
+    <div class="pricing-grid pricing-grid-3" style="margin:0 auto">
       <div class="plan reveal" style="text-align:left">
-        <h3>Studio</h3>
+        <h3>Starter</h3>
         <p class="sub">Para criadores começando a operar em qualidade premium.</p>
-        <div class="price"><span class="currency">R$</span><span class="amount" id="price-studio">79</span><span class="period">/mês</span></div>
-        <div class="strike" id="strike-studio">R$ 948 cobrados anualmente</div>
+        <div class="price"><span class="currency">R$</span><span class="amount">97</span><span class="period">/mês</span></div>
+        <div class="plan-credits-badge">100 créditos/mês</div>
         <ul class="features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>50 pedidas completas de agente</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Acesso a todos os 7 agentes premium</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Biblioteca de prompts proprietários</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Treinamentos em vídeo passo-a-passo</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Comunidade fechada e mentoria coletiva</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Comunidade fechada</li>
         </ul>
-        <a href="#" class="btn btn-ghost cta">Entrar no Studio <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></a>
+        <button class="btn btn-ghost cta" onclick="openRegisterWithPlan('starter')">Começar Agora <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
       </div>
       <div class="plan featured reveal" style="text-align:left">
         <span class="plan-badge">★ Mais popular</span>
-        <h3>Studio <em>Pro</em></h3>
-        <p class="sub">O acesso definitivo. Tudo. Sem limites. Mentoria inclusa.</p>
-        <div class="price"><span class="currency">R$</span><span class="amount" id="price-pro">149</span><span class="period">/mês</span></div>
-        <div class="strike" id="strike-pro">R$ 1.788 cobrados anualmente · Economize R$ 1.560</div>
+        <h3>Premium</h3>
+        <p class="sub">Para quem opera em alto volume e exige resultados consistentes.</p>
+        <div class="price"><span class="currency">R$</span><span class="amount">197</span><span class="period">/mês</span></div>
+        <div class="plan-credits-badge">300 créditos/mês</div>
         <ul class="features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>150 pedidas completas de agente</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Acesso a todos os 7 agentes premium</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Biblioteca de prompts proprietários</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Treinamentos em vídeo passo-a-passo</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Comunidade fechada e mentoria coletiva</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Atualizações de novos agentes</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Suporte prioritário 1-on-1</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Comunidade + mentoria coletiva</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Suporte prioritário</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Novos agentes em primeira mão</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Garantia incondicional de 7 dias</li>
         </ul>
-        <a href="#" class="btn btn-primary cta">Começar Agora <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></a>
+        <button class="btn btn-primary cta" onclick="openRegisterWithPlan('premium')">Começar Agora <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
+      </div>
+      <div class="plan reveal" style="text-align:left">
+        <h3>Enterprise</h3>
+        <p class="sub">Para agências e times que exigem máxima capacidade de produção.</p>
+        <div class="price"><span class="currency">R$</span><span class="amount">397</span><span class="period">/mês</span></div>
+        <div class="plan-credits-badge">700 créditos/mês</div>
+        <ul class="features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>350 pedidas completas de agente</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Acesso a todos os 7 agentes premium</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Biblioteca de prompts proprietários</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Comunidade + mentoria 1-on-1</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Suporte prioritário VIP</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Onboarding dedicado</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Novos agentes em primeira mão</li>
+        </ul>
+        <button class="btn btn-ghost cta" onclick="openRegisterWithPlan('enterprise')">Começar Agora <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
       </div>
     </div>
+    <p class="pricing-credit-note">⚡ Cada pedida ao agente gera 3 prompts completos e consome 2 créditos.</p>
     <div class="pricing-foot">
       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z"/></svg>Garantia incondicional de 7 dias</span>
       <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 2.9 7 7.1.5-5.4 4.7 1.7 7-6.3-4-6.3 4 1.7-7L2 9.5 9.1 9z"/></svg>Suporte prioritário</span>
@@ -2011,6 +2202,248 @@ window.addEventListener('load',function(){
     cfBuild(merged);
   };
 })();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   SISTEMA DE AUTH & CRÉDITOS — Cinematic Studio
+═══════════════════════════════════════════════════════ */
+var CS_TOKEN_KEY='cs_token';
+var CS_USER_KEY='cs_user';
+var _pendingPlan='';
+
+// ── Utilitários ───────────────────────────────────────
+function csToken(){ return localStorage.getItem(CS_TOKEN_KEY)||''; }
+function csUser(){ try{ return JSON.parse(localStorage.getItem(CS_USER_KEY)||'{}'); }catch(e){ return {}; } }
+function csLoggedIn(){ return !!csToken(); }
+function csHasPlan(){ var u=csUser(); return u.plan&&u.plan!=='free'; }
+function csCredits(){ var u=csUser(); return Math.max(0,(u.credits_total||0)-(u.credits_used||0)); }
+
+function csSave(token,user){
+  localStorage.setItem(CS_TOKEN_KEY,token);
+  localStorage.setItem(CS_USER_KEY,JSON.stringify(user));
+}
+function csClear(){
+  localStorage.removeItem(CS_TOKEN_KEY);
+  localStorage.removeItem(CS_USER_KEY);
+}
+
+// ── Estado do header ──────────────────────────────────
+function csUpdateHeader(){
+  var logged=csLoggedIn();
+  document.getElementById('nav-guest').style.display=logged?'none':'flex';
+  document.getElementById('nav-user').style.display=logged?'flex':'none';
+  if(!logged)return;
+  var u=csUser();
+  var init=(u.name||u.email||'?')[0].toUpperCase();
+  document.getElementById('nav-user-avatar').textContent=init;
+  document.getElementById('nav-user-name').textContent=(u.name||u.email||'Usuário').split(' ')[0];
+  csUpdateRing();
+}
+
+function csUpdateRing(){
+  var u=csUser();
+  var total=u.credits_total||0;
+  var used=u.credits_used||0;
+  var remaining=Math.max(0,total-used);
+  var pct=total>0?remaining/total:0;
+  // circunferência: 2*π*14 ≈ 87.96
+  var dashOffset=87.96*(1-pct);
+  var fill=document.getElementById('cr-fill');
+  if(fill) fill.style.strokeDashoffset=dashOffset.toFixed(2);
+  // painel grande: 2*π*35 ≈ 219.9
+  var bigFill=document.getElementById('up-ring-fill');
+  if(bigFill) bigFill.style.strokeDashoffset=(219.9*(1-pct)).toFixed(2);
+  // textos do painel
+  var el=document.getElementById('up-credit-remaining');
+  if(el) el.textContent=remaining;
+  var eu=document.getElementById('up-credit-used');
+  if(eu) eu.textContent=used+' usados de '+total;
+}
+
+// ── Sincronizar com server (refresh dados) ────────────
+async function csSync(){
+  var tok=csToken();
+  if(!tok)return;
+  try{
+    var r=await fetch('/user/me',{headers:{'Authorization':'Bearer '+tok}});
+    if(r.status===401){ csClear(); csUpdateHeader(); return; }
+    if(!r.ok)return;
+    var u=await r.json();
+    localStorage.setItem(CS_USER_KEY,JSON.stringify(u));
+    csUpdateHeader();
+    csUpdatePanelUser();
+  }catch(e){}
+}
+
+// ── Modais de Auth ────────────────────────────────────
+function openAuthModal(screen){
+  showAuthScreen(screen||'login');
+  document.getElementById('auth-overlay').classList.add('open');
+  setTimeout(function(){
+    var f=document.getElementById('login-email');
+    if(f)f.focus();
+  },100);
+}
+function closeAuthModal(){
+  document.getElementById('auth-overlay').classList.remove('open');
+}
+function authOverlayClick(e){
+  if(e.target===document.getElementById('auth-overlay'))closeAuthModal();
+}
+function showAuthScreen(name){
+  ['login','register','forgot'].forEach(function(s){
+    document.getElementById('auth-screen-'+s).style.display=(s===name)?'':'none';
+  });
+  // Limpar erros
+  ['login-err','reg-err','forgot-err'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){el.style.display='none';el.textContent='';}
+  });
+}
+function showAuthErr(id,msg){
+  var el=document.getElementById(id);
+  if(!el)return;
+  el.textContent=msg;
+  el.style.display='block';
+}
+
+function openRegisterWithPlan(plan){
+  _pendingPlan=plan;
+  var labels={'starter':'Plano Starter — R$ 97/mês','premium':'Plano Premium — R$ 197/mês','enterprise':'Plano Enterprise — R$ 397/mês'};
+  document.getElementById('reg-plan-label').textContent=labels[plan]||plan;
+  document.getElementById('reg-plan-badge').style.display='inline-flex';
+  openAuthModal('register');
+}
+
+// ── Login ─────────────────────────────────────────────
+async function doLogin(){
+  var email=document.getElementById('login-email').value.trim();
+  var pass=document.getElementById('login-pass').value;
+  if(!email||!pass)return showAuthErr('login-err','Preencha todos os campos.');
+  var btn=document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='Entrando…';
+  try{
+    var r=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    var d=await r.json();
+    if(!r.ok||!d.ok)return showAuthErr('login-err',d.error||'Erro ao entrar.');
+    csSave(d.token,d.user);
+    closeAuthModal();
+    csUpdateHeader();
+    csUpdatePanelUser();
+  }catch(e){showAuthErr('login-err','Erro de conexão.');}
+  finally{btn.disabled=false; btn.textContent='Entrar no Studio';}
+}
+
+// ── Cadastro ──────────────────────────────────────────
+async function doRegister(){
+  var name=document.getElementById('reg-name').value.trim();
+  var email=document.getElementById('reg-email').value.trim();
+  var pass=document.getElementById('reg-pass').value;
+  if(!email||!pass)return showAuthErr('reg-err','E-mail e senha são obrigatórios.');
+  if(pass.length<6)return showAuthErr('reg-err','Senha deve ter pelo menos 6 caracteres.');
+  var btn=document.getElementById('reg-btn');
+  btn.disabled=true; btn.textContent='Criando conta…';
+  try{
+    var r=await fetch('/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass,name})});
+    var d=await r.json();
+    if(!r.ok||!d.ok)return showAuthErr('reg-err',d.error||'Erro ao criar conta.');
+    csSave(d.token,d.user);
+    closeAuthModal();
+    csUpdateHeader();
+    // Se veio de um plano, redirecionar para pricing
+    if(_pendingPlan){
+      document.getElementById('pricing').scrollIntoView({behavior:'smooth'});
+    }
+  }catch(e){showAuthErr('reg-err','Erro de conexão.');}
+  finally{btn.disabled=false; btn.textContent='Criar minha conta';}
+}
+
+// ── Esqueceu a senha ──────────────────────────────────
+async function doForgot(){
+  var email=document.getElementById('forgot-email').value.trim();
+  if(!email)return showAuthErr('forgot-err','Informe seu e-mail.');
+  var btn=document.getElementById('forgot-btn');
+  btn.disabled=true; btn.textContent='Enviando…';
+  try{
+    var r=await fetch('/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    if(!r.ok)return showAuthErr('forgot-err','Erro ao enviar. Tente novamente.');
+    showAuthErr('forgot-err','✓ Instruções enviadas! Verifique seu e-mail.');
+    document.getElementById('forgot-err').style.background='rgba(34,197,94,.12)';
+    document.getElementById('forgot-err').style.borderColor='rgba(34,197,94,.3)';
+    document.getElementById('forgot-err').style.color='#86efac';
+  }catch(e){showAuthErr('forgot-err','Erro de conexão.');}
+  finally{btn.disabled=false; btn.textContent='Enviar instruções';}
+}
+
+// ── Logout ────────────────────────────────────────────
+function doLogout(){
+  csClear();
+  closeUserPanel();
+  csUpdateHeader();
+}
+
+// ── Painel do usuário ─────────────────────────────────
+function openUserPanel(){
+  csUpdatePanelUser();
+  document.getElementById('up-overlay').classList.add('open');
+  document.getElementById('user-panel').classList.add('open');
+  csSync();
+}
+function closeUserPanel(){
+  document.getElementById('up-overlay').classList.remove('open');
+  document.getElementById('user-panel').classList.remove('open');
+}
+function csUpdatePanelUser(){
+  var u=csUser();
+  var init=(u.name||u.email||'?')[0].toUpperCase();
+  document.getElementById('up-avatar').textContent=init;
+  document.getElementById('up-name').textContent=u.name||'Usuário';
+  document.getElementById('up-email').textContent=u.email||'—';
+  var planLabels={free:'Free',starter:'Starter',premium:'Premium',enterprise:'Enterprise'};
+  document.getElementById('up-plan-badge').textContent=planLabels[u.plan]||u.plan||'Free';
+  csUpdateRing();
+}
+function confirmCancelSub(){
+  if(confirm('Tem certeza que deseja cancelar sua assinatura? Entre em contato com o suporte para processar o cancelamento.')){
+    alert('Pedido de cancelamento registrado. Nossa equipe entrará em contato em até 24h.');
+  }
+}
+
+// ── Interceptar cliques nos cards de agente ───────────
+function csGuardAgentLinks(){
+  var agentPages=['sports.html','illusion.html','mascot.html','lettering.html','liveaction.html','extraidor.html','realistic.html'];
+  document.querySelectorAll('a[href]').forEach(function(link){
+    var href=(link.getAttribute('href')||'').replace(/^\.\//,'');
+    if(!agentPages.some(function(p){return href===p||href.endsWith('/'+p);}))return;
+    link.addEventListener('click',function(e){
+      if(csLoggedIn()&&csHasPlan())return; // usuário com plano passa livre
+      e.preventDefault();
+      var pricing=document.getElementById('pricing');
+      if(pricing) pricing.scrollIntoView({behavior:'smooth'});
+      if(!csLoggedIn()){
+        setTimeout(function(){ openAuthModal('login'); },600);
+      }
+    });
+  });
+}
+
+// ── Inicialização ─────────────────────────────────────
+(function csInit(){
+  csUpdateHeader();
+  csGuardAgentLinks();
+  csSync(); // atualizar dados do servidor
+})();
+
+// Enter nos inputs de auth
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Enter')return;
+  var overlay=document.getElementById('auth-overlay');
+  if(!overlay.classList.contains('open'))return;
+  if(document.getElementById('auth-screen-login').style.display!=='none') doLogin();
+  else if(document.getElementById('auth-screen-register').style.display!=='none') doRegister();
+  else if(document.getElementById('auth-screen-forgot').style.display!=='none') doForgot();
+});
 </script>
 </body>
 </html>
