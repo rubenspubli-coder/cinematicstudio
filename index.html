@@ -804,7 +804,7 @@ section { position: relative; }
 .up-credit-used { font-size:12px; color:var(--muted); margin-top:8px; }
 .up-upgrade-btn { width:100%; background:linear-gradient(180deg,#f7c075,#e89549); border:none; border-radius:10px; padding:12px; font-size:14px; font-weight:700; color:#1a0e02; cursor:pointer; font-family:inherit; margin-bottom:10px; transition:opacity .2s; }
 .up-upgrade-btn:hover { opacity:.9; }
-.up-cancel-link { display:block; text-align:center; font-size:12px; color:var(--muted); cursor:pointer; padding:4px; }
+.up-cancel-link { display:block; text-align:center; font-size:12px; color:var(--muted); cursor:pointer; padding:4px; margin-top:16px; }
 .up-cancel-link:hover { color:#f87171; }
 .up-logout-btn { width:100%; background:rgba(255,255,255,.04); border:1px solid var(--line-2); border-radius:10px; padding:11px; font-size:14px; color:var(--muted); cursor:pointer; font-family:inherit; transition:background .2s; }
 .up-logout-btn:hover { background:rgba(255,255,255,.08); color:var(--ink); }
@@ -814,7 +814,8 @@ section { position: relative; }
 /* ---------- pricing ---------- */
 .pricing-grid-3 { grid-template-columns: repeat(3,1fr) !important; }
 @media(max-width:900px){ .pricing-grid-3 { grid-template-columns:1fr !important; } }
-.plan-credits-badge { display:inline-flex; align-items:center; background:rgba(245,176,86,.12); border:1px solid rgba(245,176,86,.25); border-radius:20px; padding:5px 16px; font-size:13px; font-weight:700; color:var(--amber); margin-bottom:20px; }
+.plan-credits-badge { display:inline-flex; align-items:center; background:rgba(245,176,86,.12); border:1px solid rgba(245,176,86,.25); border-radius:20px; padding:5px 16px; font-size:13px; font-weight:700; color:var(--amber); margin-top:14px; margin-bottom:20px; }
+.plan-renew-note { font-size:12px; color:var(--muted); margin-top:-12px; margin-bottom:18px; }
 .pricing-credit-note { margin-top:24px; font-size:12px; color:var(--muted); opacity:.75; }
 .pricing-toggle {
   display: inline-flex;
@@ -1854,6 +1855,7 @@ body.loaded { opacity: 1; }
         <p class="sub">Para criadores começando a operar em qualidade premium.</p>
         <div class="price"><span class="currency">R$</span><span class="amount">97</span><span class="period">/mês</span></div>
         <div class="plan-credits-badge">100 créditos/mês</div>
+        <p class="plan-renew-note">Créditos renovados todos os meses</p>
         <ul class="features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>50 pedidas completas de agente</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>6 agentes premium (Sports, Illusion, Mascot, Lettering, Live Action, Realistic)</li>
@@ -1868,6 +1870,7 @@ body.loaded { opacity: 1; }
         <p class="sub">Para quem opera em alto volume e exige resultados consistentes.</p>
         <div class="price"><span class="currency">R$</span><span class="amount">197</span><span class="period">/mês</span></div>
         <div class="plan-credits-badge">300 créditos/mês</div>
+        <p class="plan-renew-note">Créditos renovados todos os meses</p>
         <ul class="features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>150 pedidas completas de agente</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Acesso a todos os 7 agentes premium</li>
@@ -1881,6 +1884,7 @@ body.loaded { opacity: 1; }
         <p class="sub">Para agências e times que exigem máxima capacidade de produção.</p>
         <div class="price"><span class="currency">R$</span><span class="amount">397</span><span class="period">/mês</span></div>
         <div class="plan-credits-badge">700 créditos/mês</div>
+        <p class="plan-renew-note">Créditos renovados todos os meses</p>
         <ul class="features">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>350 pedidas completas de agente</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 12 5 5 11-12"/></svg>Acesso a todos os 7 agentes premium</li>
