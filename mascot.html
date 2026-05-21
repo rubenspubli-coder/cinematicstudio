@@ -710,7 +710,14 @@ function fmt(text) {
       .replace(/`([^`]+)`/g,'<code>$1</code>');
   }
   let processed = text;
-  processed = processed.replace(/\*\*Prompt\s*(\d+)[:\.]?\*\*\s*\n?/gi, '%%PROMPT_$1%%\n');
+  // ── Normaliza TODOS os formatos de cabeçalho de prompt → %%PROMPT_N%%
+  // Formato 1: **Prompt N** / **Prompt N:** / **PROMPT N — "Título"** (negrito, qualquer variante)
+  processed = processed.replace(/\*\*prompt\s+(\d+)[^*\n]*\*\*/gi, '%%PROMPT_$1%%');
+  // Formato 2: # Prompt N / ## PROMPT N — "Título" (markdown heading com #)
+  processed = processed.replace(/^#{1,4}\s*prompt\s+(\d+)[^\n]*/gim, '%%PROMPT_$1%%');
+  // Formato 3: PROMPT N — / PROMPT N: (ALL CAPS no início da linha, sem formatação)
+  processed = processed.replace(/^PROMPT\s+(\d+)[^\n]*/gm, '%%PROMPT_$1%%');
+
   const lines = processed.split('\n');
   let html='', prompts=[], inP=false, pNum=0, promptLines=[];
   let inUL=false, inOL=false;
@@ -718,18 +725,30 @@ function fmt(text) {
   for (let i=0; i<lines.length; i++) {
     const line=lines[i];
     const pmMatch=line.match(/^%%PROMPT_(\d+)%%/);
-    const cq=line.includes('Qual prompt você escolhe?');
+    // Detecta linha de escolha em qualquer variante que o modelo possa gerar
+    const cq = line.includes('Qual prompt') || /qual\s+(desse|esse|o)\s+prompt/i.test(line) || line.includes('você prefere') && prompts.length>0;
     if (pmMatch) {
       closeList();
       if (inP && promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); }
       pNum=parseInt(pmMatch[1]); inP=true; promptLines=[]; continue;
     }
     if (inP) {
+      const tr2=line.trim();
+      // Pula linhas separadoras --- / *** / ___ dentro do bloco de prompt
+      if (/^[-*_]{3,}$/.test(tr2)) continue;
       if (cq) {
         if (promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); promptLines=[]; }
         inP=false;
-      } else if (line.trim()) { promptLines.push(line.trim()); continue; }
-      else { if (promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); promptLines=[]; inP=false; } continue; }
+        // Não usa continue: cai no bloco de escolha abaixo
+      } else if (tr2) {
+        // Remove prefixo de blockquote "> " e acumula o conteúdo do prompt
+        promptLines.push(tr2.replace(/^>\s*/,''));
+        continue;
+      } else {
+        // Linha em branco encerra o bloco de prompt corrente
+        if (promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); promptLines=[]; inP=false; }
+        continue;
+      }
     }
     if (cq && prompts.length>0) {
       closeList();
@@ -739,6 +758,8 @@ function fmt(text) {
       prompts=[]; continue;
     }
     const tr=line.trim();
+    // Separadores --- / *** / ___ fora de blocos → linha horizontal
+    if (/^[-*_]{3,}$/.test(tr)) { closeList(); html+='<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">'; continue; }
     const hM=tr.match(/^(#{1,4})\s+(.+)/);
     const ulM=tr.match(/^[-*]\s+(.+)/);
     const olM=tr.match(/^(\d+)\.\s+(.+)/);
