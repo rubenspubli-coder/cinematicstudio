@@ -2356,11 +2356,11 @@ window.addEventListener('load',function(){
     var outer=document.querySelector('.marquee-outer');
     var track=document.getElementById('marquee-track');
     if(!outer||!track)return;
-    var ANIM_DUR=45; // segundos (deve coincidir com o CSS)
-    var isDragging=false,startX=0,curX=0,dragDist=0,resumeTimer=null;
+    var ANIM_DUR=45;
+    var isDragging=false,startX=0,curX=0,dragDist=0;
+    var velocity=0,lastX=0,lastT=0,momentumRAF=null,resumeTimer=null;
 
-    function getCurrentX(){
-      // Lê o translateX atual da animação via matrix computado
+    function readX(){
       var st=window.getComputedStyle(track);
       var tr=st.transform||st.webkitTransform||'none';
       if(tr==='none')return 0;
@@ -2371,8 +2371,9 @@ window.addEventListener('load',function(){
     }
 
     function stopAnim(){
-      curX=getCurrentX();
-      // Desliga animação CSS e aplica posição via transform inline
+      cancelAnimationFrame(momentumRAF);
+      clearTimeout(resumeTimer);
+      curX=readX();
       track.style.animation='none';
       track.style.transform='translateX('+curX+'px)';
     }
@@ -2380,22 +2381,11 @@ window.addEventListener('load',function(){
     function resumeAnim(){
       var halfW=track.scrollWidth/2;
       if(halfW<=0)return;
-      // Lê posição exata do transform computado no momento de soltar
-      var st=window.getComputedStyle(track);
-      var tr=st.transform||'none';
-      var pos=0;
-      if(tr!=='none'){
-        var m=tr.match(/matrix.*\((.+)\)/);
-        if(m){var vals=m[1].split(',');pos=parseFloat(vals[4]||vals[12]||0);}
-      }
-      // Normaliza para o range [-halfW, 0] para loop contínuo
-      pos=pos%(-halfW);
+      var pos=curX%(-halfW);
       if(pos>0)pos-=halfW;
       if(pos<=-halfW)pos+=halfW;
-      var pct=Math.abs(pos)/halfW;
-      var delay=-(pct*ANIM_DUR);
+      var delay=-(Math.abs(pos)/halfW*ANIM_DUR);
       track.classList.remove('is-dragging');
-      // rAF duplo: garante que o browser aplica o estado antes de ligar a animação
       requestAnimationFrame(function(){
         track.style.transform='';
         track.style.animation='marquee-scroll '+ANIM_DUR+'s linear infinite';
@@ -2403,38 +2393,53 @@ window.addEventListener('load',function(){
       });
     }
 
+    function applyMomentum(){
+      // Desacelera com fricção (ease-out)
+      velocity*=0.92;
+      curX+=velocity;
+      var halfW=track.scrollWidth/2;
+      // loop
+      if(curX>0)curX-=halfW;
+      if(curX<-halfW)curX+=halfW;
+      track.style.transform='translateX('+curX+'px)';
+      if(Math.abs(velocity)>0.5){
+        momentumRAF=requestAnimationFrame(applyMomentum);
+      } else {
+        // velocidade residual muito baixa — retoma animação CSS
+        resumeTimer=setTimeout(resumeAnim,400);
+      }
+    }
+
     function onStart(x){
-      clearTimeout(resumeTimer);
-      isDragging=true; dragDist=0;
-      startX=x;
       stopAnim();
+      isDragging=true; dragDist=0; velocity=0;
+      startX=x; lastX=x; lastT=Date.now();
       track.classList.add('is-dragging');
     }
 
     function onMove(x){
       if(!isDragging)return;
+      var now=Date.now();
+      var dt=Math.max(now-lastT,1);
+      velocity=(x-lastX)/dt*16; // px por frame ~16ms
+      lastX=x; lastT=now;
       var dx=x-startX;
       dragDist=Math.abs(dx);
-      var halfW=-(track.scrollWidth/2);
+      var halfW=track.scrollWidth/2;
       var newX=curX+dx;
-      // Loop suave: se passar do limite, normaliza
-      if(newX>0)newX=newX+halfW;
-      if(newX<halfW)newX=newX-halfW;
+      if(newX>0)newX-=halfW;
+      if(newX<-halfW)newX+=halfW;
       track.style.transform='translateX('+newX+'px)';
     }
 
-    function onEnd(){
+    function onEnd(x){
       if(!isDragging)return;
       isDragging=false;
-      // salva posição final
-      var st=window.getComputedStyle(track);
-      var tr=st.transform||'none';
-      if(tr!=='none'){
-        var m=tr.match(/matrix.*\((.+)\)/);
-        if(m){var vals=m[1].split(',');curX=parseFloat(vals[4]||vals[12]||0);}
-      }
-      clearTimeout(resumeTimer);
-      resumeTimer=setTimeout(resumeAnim,1800);
+      // atualiza curX com posição real ao soltar
+      curX=readX();
+      // momentum: desliza suavemente até parar
+      cancelAnimationFrame(momentumRAF);
+      momentumRAF=requestAnimationFrame(applyMomentum);
     }
 
     // Mouse events
