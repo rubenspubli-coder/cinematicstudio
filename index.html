@@ -1487,6 +1487,64 @@ body.loaded { opacity: 1; }
 
 /* also: extra card css from git */
 
+/* ── Anthropic Showcase Marquee ── */
+.sec-marquee { padding: 80px 0 100px; overflow: hidden; }
+.marquee-headline {
+  font-size: clamp(28px, 3.5vw, 52px);
+  max-width: 24ch;
+  margin: 0 auto 64px;
+  text-align: center;
+  line-height: 1.15;
+}
+.marquee-headline em { font-style: italic; color: var(--amber); }
+.marquee-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px; padding: 5px 14px; font-size: 12px;
+  letter-spacing: .12em; color: var(--ink-3); text-transform: uppercase;
+  font-family: var(--mono); margin-bottom: 28px;
+}
+.marquee-badge svg { opacity: .7; }
+.marquee-outer {
+  position: relative; width: 100%; overflow: hidden;
+}
+.marquee-outer::before, .marquee-outer::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 160px; z-index: 2; pointer-events: none;
+}
+.marquee-outer::before { left: 0; background: linear-gradient(90deg, var(--bg) 30%, transparent); }
+.marquee-outer::after  { right: 0; background: linear-gradient(-90deg, var(--bg) 30%, transparent); }
+.marquee-track {
+  display: flex; gap: 16px; width: max-content;
+  animation: marquee-scroll 36s linear infinite;
+}
+.marquee-track:hover { animation-play-state: paused; }
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-item {
+  width: 280px; height: 380px;
+  border-radius: 18px; overflow: hidden; flex-shrink: 0;
+  position: relative; border: 1px solid rgba(255,255,255,.07);
+}
+.marquee-item-bg {
+  width: 100%; height: 100%;
+  background-size: cover; background-position: center;
+  transition: transform .4s ease;
+}
+.marquee-item:hover .marquee-item-bg { transform: scale(1.04); }
+.marquee-item-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 40px 18px 18px;
+  background: linear-gradient(transparent, rgba(0,0,0,.75));
+  font-size: 11px; font-family: var(--mono); letter-spacing: .14em;
+  text-transform: uppercase; color: rgba(255,255,255,.6);
+}
+@media (max-width: 640px) {
+  .marquee-item { width: 220px; height: 300px; }
+  .marquee-outer::before, .marquee-outer::after { width: 60px; }
+}
+
 /* ── Mobile fixes ── */
 @media (max-width: 540px) {
   /* Logo menor para caber os botões do nav */
@@ -1796,6 +1854,20 @@ body.loaded { opacity: 1; }
 
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ANTHROPIC SHOWCASE MARQUEE -->
+<section class="sec sec-marquee" id="anthropic-showcase">
+  <div class="shell" style="text-align:center">
+    <div class="marquee-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Powered by Anthropic AI
+    </div>
+    <h2 class="display title marquee-headline">Agentes criativos rodando com a inteligência <em>Anthropic.</em><br>Menos perda de tempo, resultados certeiros.</h2>
+  </div>
+  <div class="marquee-outer">
+    <div class="marquee-track" id="marquee-track"></div>
   </div>
 </section>
 
@@ -2229,6 +2301,40 @@ window.addEventListener('load',function(){
 
   cfBuild(CF_DEFAULTS);
   cfStartTimer();
+
+  // ── Showcase Marquee ─────────────────────────────────
+  // Para usar Cloudinary: preencha 'img' com URLs no formato:
+  // https://res.cloudinary.com/SEU_CLOUD/image/upload/c_fill,w_560,h_760,q_auto,f_auto/PUBLIC_ID
+  var SHOWCASE_IMGS = [
+    { label:'Sports Studio',      img:'', gradient:'linear-gradient(135deg,#1a1a22 0%,#3b2510 50%,#f5b056 100%)' },
+    { label:'Lettering Studio',   img:'', gradient:'radial-gradient(circle at 30% 30%,#f7d29a,#6b3a14 40%,#07070a 80%)' },
+    { label:'Mascot Studio',      img:'', gradient:'linear-gradient(160deg,#0b1320,#1e4264 60%,#7fb8e3)' },
+    { label:'Live Action Studio', img:'', gradient:'linear-gradient(135deg,#2b0a0a,#7a1f1f 50%,#e8a37a)' },
+    { label:'Illusion Studio',    img:'', gradient:'linear-gradient(135deg,#3a1a4a,#7a2da0 50%,#f0c8ff)' },
+    { label:'Realistic Studio',   img:'', gradient:'linear-gradient(180deg,#101015,#3d2820 60%,#c97d4a)' },
+    { label:'Sports · iGaming',   img:'', gradient:'linear-gradient(135deg,#0e1a0e,#1f5d2f 50%,#9eda6a)' },
+    { label:'Lettering · Gold',   img:'', gradient:'linear-gradient(180deg,#1d1408,#7a5a1c 70%,#f5d97a)' },
+    { label:'Mascot · Esportivo', img:'', gradient:'radial-gradient(circle at 70% 30%,#ffb060,#5a2a10 40%,#07070a 80%)' },
+  ];
+  (function(){
+    var track=document.getElementById('marquee-track');
+    if(!track)return;
+    var items=SHOWCASE_IMGS.concat(SHOWCASE_IMGS); // duplica para loop infinito
+    items.forEach(function(it){
+      var wrap=document.createElement('div');
+      wrap.className='marquee-item';
+      var bg=document.createElement('div');
+      bg.className='marquee-item-bg';
+      bg.style.background=it.gradient||'#1a1a22';
+      if(it.img) bg.style.backgroundImage='url('+it.img+')';
+      var lbl=document.createElement('div');
+      lbl.className='marquee-item-label';
+      lbl.textContent=it.label;
+      wrap.appendChild(bg);
+      wrap.appendChild(lbl);
+      track.appendChild(wrap);
+    });
+  })();
 
   // override with real images from config.json if present
   window._cfApplyConfig=function(items){
