@@ -179,7 +179,7 @@ section { position: relative; }
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(8px);
 }
-.section-tag .dot {
+.section-tag .dot, .marquee-badge .dot {
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--amber);
   box-shadow: 0 0 12px var(--amber-glow);
@@ -1514,7 +1514,7 @@ body.loaded { opacity: 1; }
 .marquee-outer::after  { right: 0; background: linear-gradient(-90deg, var(--bg) 30%, transparent); }
 .marquee-track {
   display: flex; gap: 16px; width: max-content;
-  animation: marquee-scroll 36s linear infinite;
+  animation: marquee-scroll 65s linear infinite;
 }
 .marquee-track:hover { animation-play-state: paused; }
 @keyframes marquee-scroll {
