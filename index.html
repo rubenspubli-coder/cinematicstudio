@@ -2304,38 +2304,39 @@ window.addEventListener('load',function(){
   cfStartTimer();
 
   // ── Showcase Marquee ─────────────────────────────────
-  // Para usar Cloudinary: preencha 'img' com URLs no formato:
-  // https://res.cloudinary.com/SEU_CLOUD/image/upload/c_fill,w_560,h_760,q_auto,f_auto/PUBLIC_ID
-  var SHOWCASE_IMGS = [
-    { label:'Sports Studio',      img:'', gradient:'linear-gradient(135deg,#1a1a22 0%,#3b2510 50%,#f5b056 100%)' },
-    { label:'Lettering Studio',   img:'', gradient:'radial-gradient(circle at 30% 30%,#f7d29a,#6b3a14 40%,#07070a 80%)' },
-    { label:'Mascot Studio',      img:'', gradient:'linear-gradient(160deg,#0b1320,#1e4264 60%,#7fb8e3)' },
-    { label:'Live Action Studio', img:'', gradient:'linear-gradient(135deg,#2b0a0a,#7a1f1f 50%,#e8a37a)' },
-    { label:'Illusion Studio',    img:'', gradient:'linear-gradient(135deg,#3a1a4a,#7a2da0 50%,#f0c8ff)' },
-    { label:'Realistic Studio',   img:'', gradient:'linear-gradient(180deg,#101015,#3d2820 60%,#c97d4a)' },
-    { label:'Sports · iGaming',   img:'', gradient:'linear-gradient(135deg,#0e1a0e,#1f5d2f 50%,#9eda6a)' },
-    { label:'Lettering · Gold',   img:'', gradient:'linear-gradient(180deg,#1d1408,#7a5a1c 70%,#f5d97a)' },
-    { label:'Mascot · Esportivo', img:'', gradient:'radial-gradient(circle at 70% 30%,#ffb060,#5a2a10 40%,#07070a 80%)' },
+  var MQ_GRADIENTS=[
+    'linear-gradient(135deg,#1a1a22 0%,#3b2510 50%,#f5b056 100%)',
+    'linear-gradient(135deg,#3a1a4a,#7a2da0 50%,#f0c8ff)',
+    'radial-gradient(circle at 70% 30%,#ffb060,#5a2a10 40%,#07070a 80%)',
+    'linear-gradient(180deg,#1d1408,#7a5a1c 70%,#f5d97a)',
+    'linear-gradient(135deg,#2b0a0a,#7a1f1f 50%,#e8a37a)',
+    'radial-gradient(circle at 30% 30%,#f7d29a,#6b3a14 40%,#07070a 80%)',
+    'linear-gradient(180deg,#101015,#3d2820 60%,#c97d4a)',
   ];
-  (function(){
+  function buildMarquee(cfItems){
     var track=document.getElementById('marquee-track');
     if(!track)return;
-    var items=SHOWCASE_IMGS.concat(SHOWCASE_IMGS); // duplica para loop infinito
-    items.forEach(function(it){
-      var wrap=document.createElement('div');
-      wrap.className='marquee-item';
-      var bg=document.createElement('div');
-      bg.className='marquee-item-bg';
-      bg.style.backgroundImage = it.img ? 'url('+it.img+')' : it.gradient||'none';
-      bg.style.backgroundColor = '#1a1a22';
-      var lbl=document.createElement('div');
-      lbl.className='marquee-item-label';
-      lbl.textContent=it.label;
-      wrap.appendChild(bg);
-      wrap.appendChild(lbl);
-      track.appendChild(wrap);
+    track.innerHTML='';
+    var base=[];
+    if(cfItems&&cfItems.length){
+      cfItems.forEach(function(it,i){
+        base.push({img:it.img||'',label:it.title||it.tag||'Studio',gradient:MQ_GRADIENTS[i%MQ_GRADIENTS.length]});
+      });
+    } else {
+      MQ_GRADIENTS.forEach(function(g,i){base.push({img:'',label:'Studio',gradient:g});});
+    }
+    // duplica para loop infinito sem salto
+    base.concat(base).forEach(function(it){
+      var wrap=document.createElement('div');wrap.className='marquee-item';
+      var bg=document.createElement('div');bg.className='marquee-item-bg';
+      if(it.img){bg.style.backgroundImage='url('+it.img+')';}
+      else{bg.style.background=it.gradient;}
+      bg.style.backgroundColor='#1a1a22';
+      var lbl=document.createElement('div');lbl.className='marquee-item-label';lbl.textContent=it.label;
+      wrap.appendChild(bg);wrap.appendChild(lbl);track.appendChild(wrap);
     });
-  })();
+  }
+  buildMarquee([]);
 
   // override with real images from config.json if present
   window._cfApplyConfig=function(items){
@@ -2343,6 +2344,7 @@ window.addEventListener('load',function(){
     var merged=CF_DEFAULTS.map(function(d,i){return items[i]?Object.assign({},d,items[i]):d;});
     for(var i=CF_DEFAULTS.length;i<items.length;i++)merged.push(items[i]);
     cfBuild(merged);
+    buildMarquee(merged); // atualiza o marquee com as mesmas imagens reais do showcase
   };
 })();
 </script>
