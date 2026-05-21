@@ -1490,14 +1490,20 @@ body.loaded { opacity: 1; }
 /* ── Anthropic Showcase Marquee ── */
 .sec-marquee { padding: 80px 0 100px; overflow: hidden; }
 .marquee-headline {
-  font-size: clamp(18px, 1.8vw, 28px);
-  max-width: 52ch;
+  font-size: clamp(28px, 3.5vw, 52px);
+  max-width: 24ch;
   margin: 0 auto 48px;
   text-align: center;
-  line-height: 1.45;
-  color: var(--ink-2);
+  line-height: 1.15;
+}
+.marquee-sub {
+  display: block;
+  font-size: clamp(14px, 1.4vw, 20px);
   font-family: var(--sub);
   font-weight: 400;
+  color: var(--ink-2);
+  margin-top: 10px;
+  line-height: 1.5;
 }
 .marquee-headline em { font-style: italic; color: var(--amber); }
 .marquee-badge {
@@ -1867,7 +1873,7 @@ body.loaded { opacity: 1; }
       <span class="dot"></span>
       Powered by Anthropic AI
     </div>
-    <h2 class="display title marquee-headline">Agentes criativos rodando com a inteligência <em>Anthropic.</em><br>Menos perda de tempo, resultados certeiros.</h2>
+    <h2 class="display title marquee-headline">Agentes criativos rodando com a inteligência <em>Anthropic.</em><br><span class="marquee-sub">Menos perda de tempo, resultados certeiros.</span></h2>
   </div>
   <div class="marquee-outer">
     <div class="marquee-track" id="marquee-track"></div>
