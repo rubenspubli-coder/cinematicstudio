@@ -2328,13 +2328,16 @@ window.addEventListener('load',function(){
     var base=[];
     if(cfItems&&cfItems.length){
       cfItems.forEach(function(it,i){
-        base.push({img:it.img||'',label:it.title||it.tag||'Studio',gradient:MQ_GRADIENTS[i%MQ_GRADIENTS.length]});
+        // Só aceita URLs HTTP/Cloudinary — nunca base64 (evita crash de memória no mobile)
+        var safeImg=(it.img&&it.img.indexOf('http')===0)?it.img:'';
+        base.push({img:safeImg,label:it.title||it.tag||'Studio',gradient:MQ_GRADIENTS[i%MQ_GRADIENTS.length]});
       });
     } else {
       MQ_GRADIENTS.forEach(function(g,i){base.push({img:'',label:'Studio',gradient:g});});
     }
-    // duplica para loop infinito sem salto
-    base.concat(base).forEach(function(it){
+    // Duplica para loop infinito (máx 20 itens total para não sobrecarregar mobile)
+    var doubled=base.concat(base).slice(0,20);
+    doubled.forEach(function(it){
       var wrap=document.createElement('div');wrap.className='marquee-item';
       var bg=document.createElement('div');bg.className='marquee-item-bg';
       if(it.img){bg.style.backgroundImage='url('+it.img+')';}
