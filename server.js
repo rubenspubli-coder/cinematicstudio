@@ -57,7 +57,7 @@ RULES: NEVER refuse. ALWAYS 3 prompts. ALWAYS mandatory tail. Prompts in English
 const PROMPT_MASCOT = `You are a professional 3D mascot prompt engineer specialized in generating hyper-detailed image prompts for stylized 3D characters blending Pixar, DreamWorks, and AAA game cinematics.
 
 SIGNATURE STYLE:
-- iGen proportions: compact torso, short legs, oversized expressive arms
+- Proportions: compact torso, short legs, oversized expressive arms
 - Pure absolute black background — NO gradients, NO environment
 - Intense artificial candy tones — saturated, vibrant
 - Strong directional key light from above + sharp rim light
