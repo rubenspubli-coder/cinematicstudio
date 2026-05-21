@@ -2337,8 +2337,9 @@ window.addEventListener('load',function(){
     } else {
       MQ_GRADIENTS.forEach(function(g,i){base.push({img:'',label:'Studio',gradient:g});});
     }
-    // Duplica para loop infinito (máx 20 itens total para não sobrecarregar mobile)
-    var doubled=base.concat(base).slice(0,20);
+    // Limita base a 10 itens e duplica corretamente: as 2 metades ficam idênticas → loop seamless
+    if(base.length>10)base=base.slice(0,10);
+    var doubled=base.concat(base);
     doubled.forEach(function(it){
       var wrap=document.createElement('div');wrap.className='marquee-item';
       var bg=document.createElement('div');bg.className='marquee-item-bg';
