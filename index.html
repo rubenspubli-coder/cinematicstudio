@@ -2378,15 +2378,29 @@ window.addEventListener('load',function(){
     }
 
     function resumeAnim(){
-      // Reinicia animação a partir da posição atual usando animationDelay negativo
       var halfW=track.scrollWidth/2;
-      var pos=((curX%(-halfW))+halfW)%halfW; // normaliza dentro de um ciclo
-      var pct=pos/halfW;
+      if(halfW<=0)return;
+      // Lê posição exata do transform computado no momento de soltar
+      var st=window.getComputedStyle(track);
+      var tr=st.transform||'none';
+      var pos=0;
+      if(tr!=='none'){
+        var m=tr.match(/matrix.*\((.+)\)/);
+        if(m){var vals=m[1].split(',');pos=parseFloat(vals[4]||vals[12]||0);}
+      }
+      // Normaliza para o range [-halfW, 0] para loop contínuo
+      pos=pos%(-halfW);
+      if(pos>0)pos-=halfW;
+      if(pos<=-halfW)pos+=halfW;
+      var pct=Math.abs(pos)/halfW;
       var delay=-(pct*ANIM_DUR);
-      track.style.transform='';
-      track.style.animation='marquee-scroll '+ANIM_DUR+'s linear infinite';
-      track.style.animationDelay=delay+'s';
       track.classList.remove('is-dragging');
+      // rAF duplo: garante que o browser aplica o estado antes de ligar a animação
+      requestAnimationFrame(function(){
+        track.style.transform='';
+        track.style.animation='marquee-scroll '+ANIM_DUR+'s linear infinite';
+        track.style.animationDelay=delay+'s';
+      });
     }
 
     function onStart(x){
