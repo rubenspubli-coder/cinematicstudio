@@ -111,6 +111,12 @@ header {
 .stream-td { display:block; width:100%; }
 .msg.user .mc { text-align:right;color:#ebc8c8; }
 .mc p { margin-bottom:5px; } .mc p:last-child { margin-bottom:0; }
+.mc h3 { font-size:14px;font-weight:700;color:var(--green);margin:9px 0 4px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.04em;line-height:1.3; }
+.mc h4 { font-size:13px;font-weight:600;color:var(--gdim);margin:7px 0 3px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.03em;line-height:1.3; }
+.mc h5 { font-size:12px;font-weight:600;color:var(--muted);margin:6px 0 3px;font-family:'Barlow Condensed',sans-serif;line-height:1.3; }
+.mc ul,.mc ol { margin:4px 0 7px 18px;padding:0; }
+.mc li { margin-bottom:3px;line-height:1.6; }
+.mc code { background:#1a1500;color:#e0c040;border:1px solid #3a2a00;border-radius:4px;padding:1px 5px;font-family:'DM Mono','Courier New',monospace;font-size:12px; }
 .mi { max-width:180px;max-height:180px;border-radius:9px;border:1px solid var(--gdim);display:block;margin-bottom:7px;object-fit:cover; }
 .msg.user .mi { margin-left:auto; }
 .pb-wrap { position:relative;margin:7px 0; }
@@ -696,15 +702,25 @@ function mkPromptBlock(num, text) {
 }
 
 function fmt(text) {
+  function inlineM(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/_(.*?)_/g,'<em>$1</em>')
+      .replace(/`([^`]+)`/g,'<code>$1</code>');
+  }
   let processed = text;
   processed = processed.replace(/\*\*Prompt\s*(\d+)[:\.]?\*\*\s*\n?/gi, '%%PROMPT_$1%%\n');
   const lines = processed.split('\n');
   let html='', prompts=[], inP=false, pNum=0, promptLines=[];
+  let inUL=false, inOL=false;
+  function closeList(){ if(inUL){html+='</ul>';inUL=false;} if(inOL){html+='</ol>';inOL=false;} }
   for (let i=0; i<lines.length; i++) {
     const line=lines[i];
     const pmMatch=line.match(/^%%PROMPT_(\d+)%%/);
     const cq=line.includes('Qual prompt você escolhe?');
     if (pmMatch) {
+      closeList();
       if (inP && promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); }
       pNum=parseInt(pmMatch[1]); inP=true; promptLines=[]; continue;
     }
@@ -716,13 +732,36 @@ function fmt(text) {
       else { if (promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); promptLines=[]; inP=false; } continue; }
     }
     if (cq && prompts.length>0) {
+      closeList();
       lastPrompts=[...prompts];
       html+=`<p style="margin-top:12px;color:var(--muted);font-size:12px;">${line}</p>`;
       html+=`<div class="pc">${lastPrompts.map(p=>`<button class="pb" onclick="pick(${p.num})">Prompt ${p.num}</button>`).join('')}</div>`;
       prompts=[]; continue;
     }
-    if (line.trim()) html+=`<p>${line.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</p>`;
+    const tr=line.trim();
+    const hM=tr.match(/^(#{1,4})\s+(.+)/);
+    const ulM=tr.match(/^[-*]\s+(.+)/);
+    const olM=tr.match(/^(\d+)\.\s+(.+)/);
+    if (hM) {
+      closeList();
+      const lv=Math.min(hM[1].length+2,6);
+      html+=`<h${lv}>${inlineM(hM[2])}</h${lv}>`;
+    } else if (ulM) {
+      if(inOL){html+='</ol>';inOL=false;}
+      if(!inUL){html+='<ul>';inUL=true;}
+      html+=`<li>${inlineM(ulM[1])}</li>`;
+    } else if (olM) {
+      if(inUL){html+='</ul>';inUL=false;}
+      if(!inOL){html+='<ol>';inOL=true;}
+      html+=`<li>${inlineM(olM[2])}</li>`;
+    } else if (tr) {
+      closeList();
+      html+=`<p>${inlineM(tr)}</p>`;
+    } else {
+      closeList();
+    }
   }
+  closeList();
   if (inP && promptLines.length) { const t=promptLines.join(' ').trim(); prompts.push({num:pNum,text:t}); html+=mkPromptBlock(pNum,t); }
   if (prompts.length>0) {
     lastPrompts=[...prompts];
@@ -733,7 +772,12 @@ function fmt(text) {
 }
 
 function fmtStream(text) {
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').split('\n').join('<br>');
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/_(.*?)_/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .split('\n').join('<br>');
 }
 
 // COPY
