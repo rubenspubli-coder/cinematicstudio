@@ -1523,7 +1523,7 @@ body.loaded { opacity: 1; }
 .marquee-outer::after  { right: 0; background: linear-gradient(-90deg, var(--bg) 30%, transparent); }
 .marquee-track {
   display: flex; gap: 16px; width: max-content;
-  animation: marquee-scroll 90s linear infinite;
+  animation: marquee-scroll 45s linear infinite;
   cursor: grab; user-select: none; will-change: transform;
 }
 .marquee-track.is-dragging { cursor: grabbing; animation-play-state: paused; }
@@ -2356,66 +2356,86 @@ window.addEventListener('load',function(){
     var outer=document.querySelector('.marquee-outer');
     var track=document.getElementById('marquee-track');
     if(!outer||!track)return;
-    var isDragging=false,startX=0,scrollLeft=0,dragDist=0,resumeTimer=null;
+    var ANIM_DUR=45; // segundos (deve coincidir com o CSS)
+    var isDragging=false,startX=0,curX=0,dragDist=0,resumeTimer=null;
 
-    function getMatrix(el){
-      var st=window.getComputedStyle(el);
-      var tr=st.transform||st.webkitTransform;
-      if(!tr||tr==='none')return 0;
-      var m=tr.match(/matrix\(([^)]+)\)/);
-      return m?parseFloat(m[1].split(',')[4]||0):0;
+    function getCurrentX(){
+      // Lê o translateX atual da animação via matrix computado
+      var st=window.getComputedStyle(track);
+      var tr=st.transform||st.webkitTransform||'none';
+      if(tr==='none')return 0;
+      var m=tr.match(/matrix.*\((.+)\)/);
+      if(!m)return 0;
+      var vals=m[1].split(',');
+      return parseFloat(vals[4]||vals[12]||0);
     }
-    function pauseAnim(){
-      var cur=getMatrix(track);
-      track.style.animationPlayState='paused';
-      track.style.transform='translateX('+cur+'px)';
-      track.style.animationDelay='0s';
+
+    function stopAnim(){
+      curX=getCurrentX();
+      // Desliga animação CSS e aplica posição via transform inline
+      track.style.animation='none';
+      track.style.transform='translateX('+curX+'px)';
     }
+
     function resumeAnim(){
-      // calcula o delay para continuar da posição atual
-      var cur=getMatrix(track);
-      var totalW=track.scrollWidth/2;
-      var pct=Math.abs(cur)/totalW;
-      var dur=90;
-      var delay=-(pct*dur)+'s';
+      // Reinicia animação a partir da posição atual usando animationDelay negativo
+      var halfW=track.scrollWidth/2;
+      var pos=((curX%(-halfW))+halfW)%halfW; // normaliza dentro de um ciclo
+      var pct=pos/halfW;
+      var delay=-(pct*ANIM_DUR);
       track.style.transform='';
-      track.style.animationDelay=delay;
-      track.style.animationPlayState='running';
-      track.classList.remove('is-dragging','drag-paused');
+      track.style.animation='marquee-scroll '+ANIM_DUR+'s linear infinite';
+      track.style.animationDelay=delay+'s';
+      track.classList.remove('is-dragging');
     }
+
     function onStart(x){
-      isDragging=true;dragDist=0;
-      startX=x-outer.getBoundingClientRect().left;
-      scrollLeft=getMatrix(track);
-      pauseAnim();
+      clearTimeout(resumeTimer);
+      isDragging=true; dragDist=0;
+      startX=x;
+      stopAnim();
       track.classList.add('is-dragging');
     }
+
     function onMove(x){
       if(!isDragging)return;
-      var dx=(x-outer.getBoundingClientRect().left)-startX;
+      var dx=x-startX;
       dragDist=Math.abs(dx);
-      var newX=scrollLeft+dx;
-      var totalW=-(track.scrollWidth/2);
-      if(newX>0)newX=0;
-      if(newX<totalW*2)newX=totalW*2;
+      var halfW=-(track.scrollWidth/2);
+      var newX=curX+dx;
+      // Loop suave: se passar do limite, normaliza
+      if(newX>0)newX=newX+halfW;
+      if(newX<halfW)newX=newX-halfW;
       track.style.transform='translateX('+newX+'px)';
     }
+
     function onEnd(){
       if(!isDragging)return;
       isDragging=false;
+      // salva posição final
+      var st=window.getComputedStyle(track);
+      var tr=st.transform||'none';
+      if(tr!=='none'){
+        var m=tr.match(/matrix.*\((.+)\)/);
+        if(m){var vals=m[1].split(',');curX=parseFloat(vals[4]||vals[12]||0);}
+      }
       clearTimeout(resumeTimer);
-      resumeTimer=setTimeout(resumeAnim,2000); // retoma após 2s
+      resumeTimer=setTimeout(resumeAnim,1800);
     }
-    // Mouse
-    outer.addEventListener('mousedown',function(e){onStart(e.pageX);});
+
+    // Mouse events
+    outer.addEventListener('mousedown',function(e){e.preventDefault();onStart(e.pageX);});
     window.addEventListener('mousemove',function(e){onMove(e.pageX);});
     window.addEventListener('mouseup',onEnd);
-    // Touch
+    // Touch events
     outer.addEventListener('touchstart',function(e){onStart(e.touches[0].pageX);},{passive:true});
-    outer.addEventListener('touchmove',function(e){onMove(e.touches[0].pageX);},{passive:true});
+    outer.addEventListener('touchmove',function(e){
+      if(isDragging)e.preventDefault();
+      onMove(e.touches[0].pageX);
+    },{passive:false});
     outer.addEventListener('touchend',onEnd);
-    // Evita navegação ao arrastar
-    outer.addEventListener('click',function(e){if(dragDist>5)e.preventDefault();},{capture:true});
+    // Bloqueia click acidental após drag
+    outer.addEventListener('click',function(e){if(dragDist>8)e.preventDefault();},{capture:true});
   })();
 
   // override with real images from config.json if present
