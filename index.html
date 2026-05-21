@@ -1523,26 +1523,27 @@ body.loaded { opacity: 1; }
   to   { transform: translateX(-50%); }
 }
 .marquee-item {
-  width: 280px; height: 380px;
-  border-radius: 18px; overflow: hidden; flex-shrink: 0;
-  position: relative; border: 1px solid rgba(255,255,255,.07);
+  width: 360px; height: 500px;
+  border-radius: 20px; overflow: hidden; flex-shrink: 0;
+  position: relative; border: 1px solid rgba(255,255,255,.09);
+  box-shadow: 0 8px 40px rgba(0,0,0,.45);
 }
 .marquee-item-bg {
   width: 100%; height: 100%;
   background-size: cover; background-position: center;
-  transition: transform .4s ease;
+  transition: transform .5s ease;
 }
-.marquee-item:hover .marquee-item-bg { transform: scale(1.04); }
+.marquee-item:hover .marquee-item-bg { transform: scale(1.05); }
 .marquee-item-label {
   position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 40px 18px 18px;
-  background: linear-gradient(transparent, rgba(0,0,0,.75));
+  padding: 60px 20px 20px;
+  background: linear-gradient(transparent, rgba(0,0,0,.80));
   font-size: 11px; font-family: var(--mono); letter-spacing: .14em;
-  text-transform: uppercase; color: rgba(255,255,255,.6);
+  text-transform: uppercase; color: rgba(255,255,255,.65);
 }
 @media (max-width: 640px) {
-  .marquee-item { width: 220px; height: 300px; }
-  .marquee-outer::before, .marquee-outer::after { width: 60px; }
+  .marquee-item { width: 280px; height: 380px; }
+  .marquee-outer::before, .marquee-outer::after { width: 50px; }
 }
 
 /* ── Mobile fixes ── */
@@ -2325,8 +2326,8 @@ window.addEventListener('load',function(){
       wrap.className='marquee-item';
       var bg=document.createElement('div');
       bg.className='marquee-item-bg';
-      bg.style.background=it.gradient||'#1a1a22';
-      if(it.img) bg.style.backgroundImage='url('+it.img+')';
+      bg.style.backgroundImage = it.img ? 'url('+it.img+')' : it.gradient||'none';
+      bg.style.backgroundColor = '#1a1a22';
       var lbl=document.createElement('div');
       lbl.className='marquee-item-label';
       lbl.textContent=it.label;
