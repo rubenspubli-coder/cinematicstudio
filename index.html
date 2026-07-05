@@ -2580,8 +2580,25 @@ function showAuthErr(id,msg){
   el.style.display='block';
 }
 
+// Checkouts Kiwify de cada plano
+var PLAN_CHECKOUT={
+  'starter':'https://pay.kiwify.com.br/BoCzH69',
+  'premium':'https://pay.kiwify.com.br/0pPsCCM',
+  'enterprise':'https://pay.kiwify.com.br/YOmxJNo'
+};
+function goToCheckout(plan){
+  var url=PLAN_CHECKOUT[plan];
+  if(!url)return;
+  var u=csUser();
+  var qs=[];
+  if(u.email)qs.push('email='+encodeURIComponent(u.email));
+  if(u.name)qs.push('name='+encodeURIComponent(u.name));
+  window.location.href=url+(qs.length?'?'+qs.join('&'):'');
+}
 function openRegisterWithPlan(plan){
   _pendingPlan=plan;
+  // Já logado? Vai direto para o checkout com o e-mail da conta.
+  if(csLoggedIn()){goToCheckout(plan);return;}
   var labels={'starter':'Plano Starter — R$ 97/mês','premium':'Plano Premium — R$ 197/mês','enterprise':'Plano Enterprise — R$ 397/mês'};
   document.getElementById('reg-plan-label').textContent=labels[plan]||plan;
   document.getElementById('reg-plan-badge').style.display='inline-flex';
@@ -2603,6 +2620,11 @@ async function doLogin(){
     closeAuthModal();
     csUpdateHeader();
     csUpdatePanelUser();
+    // Veio de um plano e ainda não tem plano ativo? Segue para o checkout.
+    if(_pendingPlan&&(!d.user.plan||d.user.plan==='free')){
+      goToCheckout(_pendingPlan);
+      return;
+    }
   }catch(e){showAuthErr('login-err','Erro de conexão.');}
   finally{btn.disabled=false; btn.textContent='Entrar no Studio';}
 }
@@ -2623,9 +2645,10 @@ async function doRegister(){
     csSave(d.token,d.user);
     closeAuthModal();
     csUpdateHeader();
-    // Se veio de um plano, redirecionar para pricing
+    // Se veio de um plano, seguir direto para o checkout Kiwify
     if(_pendingPlan){
-      document.getElementById('pricing').scrollIntoView({behavior:'smooth'});
+      goToCheckout(_pendingPlan);
+      return;
     }
   }catch(e){showAuthErr('reg-err','Erro de conexão.');}
   finally{btn.disabled=false; btn.textContent='Criar minha conta';}

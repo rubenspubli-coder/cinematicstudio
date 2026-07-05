@@ -16,7 +16,7 @@ const _cldFound = Object.keys(process.env).filter(k => k.startsWith('CLOUDINARY'
 console.log('CLOUDINARY vars found:', _cldFound.length ? _cldFound.join(', ') : 'NONE');
 console.log('CLOUDINARY_API_KEY defined:', 'CLOUDINARY_API_KEY' in process.env, '| length:', (process.env.CLOUDINARY_API_KEY||'').length);
 
-const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
+const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL, ssl: /localhost|127\.0\.0\.1/.test(DATABASE_URL) ? false : { rejectUnauthorized: false } }) : null;
 
 // ── SYSTEM PROMPTS ─────────────────────────────────────────────────────────────
 
@@ -195,6 +195,11 @@ async function initDB() {
         avatar_url VARCHAR(500) DEFAULT ''
       );
       ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500) DEFAULT '';
+      CREATE TABLE IF NOT EXISTS pending_plans (
+        email VARCHAR(200) PRIMARY KEY,
+        plan VARCHAR(20) NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     const exists = await pool.query('SELECT id FROM admin_users WHERE username=$1', ['admin']);
@@ -328,10 +333,25 @@ function getAuth(req) {
   const t=auth.startsWith('Bearer ')?auth.slice(7):null;
   return t?verifyJWT(t):null;
 }
+// Tokens de admin carregam {username}; tokens de usuário carregam {userId,email}.
+// Nunca aceitar token de usuário comum em rotas /admin/*.
+async function getAdminAuth(req) {
+  const p=getAuth(req);
+  if(!p||!p.username||p.userId)return null;
+  if(pool){
+    try{
+      const r=await pool.query('SELECT id FROM admin_users WHERE username=$1',[p.username]);
+      if(r.rows.length===0)return null;
+    }catch(e){return null;}
+  }
+  return p;
+}
+const CLAUDE_MODEL=process.env.CLAUDE_MODEL||'claude-sonnet-4-6';
 function callAnthropic(systemPrompt, clientBody, res) {
   const parsed=typeof clientBody==='string'?JSON.parse(clientBody):clientBody;
   const {angle,proportion,description,hasImage,...rest}=parsed;
-  const body=JSON.stringify({...rest,system:systemPrompt});
+  // Modelo e limite de tokens são decididos pelo servidor — nunca pelo cliente
+  const body=JSON.stringify({...rest,model:CLAUDE_MODEL,max_tokens:Math.min(parseInt(rest.max_tokens)||2500,4000),system:systemPrompt});
   const opts={
     hostname:'api.anthropic.com',path:'/v1/messages',method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','Content-Length':Buffer.byteLength(body)}
@@ -466,6 +486,13 @@ label#ul:hover{background:rgba(255,255,255,.1)!important;border-color:rgba(255,2
 </style>
 </head>
 <body>
+<script>
+(function(){
+  var tok=localStorage.getItem("cs_token");
+  var user={};try{user=JSON.parse(localStorage.getItem("cs_user")||"{}");}catch(e){}
+  if(!tok||!user.plan||user.plan==="free"){window.location.href="/#pricing";}
+})();
+</script>
 <div class="app">
 <header>
   <div style="display:flex;align-items:center;gap:10px">
@@ -519,12 +546,12 @@ var sessions=[],history=[],curId=null,init=false,imgs=[],selA='',selR='',lastP=[
 try{sessions=JSON.parse(localStorage.getItem(SK)||'[]');}catch(e){}
 var chat=document.getElementById('chat'),ti=document.getElementById('ti'),send=document.getElementById('send'),ipr=document.getElementById('ipr'),icb=document.getElementById('icb');
 document.getElementById('stog').onclick=function(){document.getElementById('sb2').classList.toggle('off');};
-function rHist(){var h=document.getElementById('hist');if(!sessions.length){h.innerHTML='<div class="noh">Nenhuma conversa ainda.<br>Comece digitando abaixo.</div>';return;}h.innerHTML=sessions.map(function(s){return '<button class="hi'+(s.id===curId?' active':'')+'" onclick="lSess(\''+es(s.id)+'\')">'+es(s.name||'Nova conversa')+'</button>';}).join('');}
+function rHist(){var h=document.getElementById('hist');if(!sessions.length){h.innerHTML='<div class="noh">Nenhuma conversa ainda.<br>Comece digitando abaixo.</div>';return;}h.innerHTML=sessions.map(function(s){return '<button class="hi'+(s.id===curId?' active':'')+'" onclick="lSess(\\''+es(s.id)+'\\')">'+es(s.name||'Nova conversa')+'</button>';}).join('');}
 function saveSess(){var s=sessions.find(function(x){return x.id===curId;});if(!s){s={id:curId,name:'Nova conversa',history:[]};sessions.unshift(s);}s.history=history;var f=history.find(function(m){return m.role==='user';});if(f){var t=typeof f.content==='string'?f.content:((f.content.find(function(c){return c.type==='text';})||{}).text||'');s.name=t.slice(0,36);}try{localStorage.setItem(SK,JSON.stringify(sessions));}catch(e){}rHist();}
 window.newChat=function(){curId=Date.now().toString();history=[];init=false;chat.innerHTML='';rHist();boot();};
 window.lSess=function(id){var s=sessions.find(function(x){return x.id===id;});if(!s)return;curId=id;history=s.history||[];chat.innerHTML='';init=false;history.forEach(function(m){if(m.role==='user'){var t=typeof m.content==='string'?m.content:((m.content.find(function(c){return c.type==='text';})||{}).text||'');addMsg('user',t,false,null);}else addMsg('bot',m.content,false,null);});rHist();boot();};
-function isiImg(f){return /^image\/(jpeg|png|webp|gif)$/.test(f.type);}
-function isHeic(f){return /heic|heif/i.test(f.type)||/\.(heic|heif)$/i.test(f.name);}
+function isiImg(f){return /^image\\/(jpeg|png|webp|gif)$/.test(f.type);}
+function isHeic(f){return /heic|heif/i.test(f.type)||/\\.(heic|heif)$/i.test(f.name);}
 function addImgs(files){var rem=MAX-imgs.length;var todo=Array.from(files).slice(0,rem).filter(function(f){if(isHeic(f)){document.getElementById('hicw').style.display='block';setTimeout(function(){document.getElementById('hicw').style.display='none';},4000);return false;}return isiImg(f);});if(!todo.length)return;var n=0;todo.forEach(function(f){var rd=new FileReader();rd.onload=function(e){imgs.push({data:e.target.result.split(',')[1],type:f.type});n++;if(n===todo.length)upIPrev();};rd.readAsDataURL(f);});}
 function upIPrev(){if(!imgs.length){ipr.style.display='none';icb.style.display='none';return;}ipr.style.display='flex';icb.style.display='flex';icb.textContent=imgs.length;ipr.innerHTML=imgs.map(function(img,i){return '<div class="ipi"><img src="data:'+img.type+';base64,'+img.data+'"><button class="ipr2" onclick="rmImg('+i+')">×</button></div>';}).join('');updSend();}
 window.rmImg=function(i){imgs.splice(i,1);upIPrev();};
@@ -537,7 +564,7 @@ send.addEventListener('click',doSend);
 var ANG=['Medium Shot','Close-Up','Wide Shot','Low Angle','High Angle','Bird Eye','Worm Eye','Dutch Angle'];
 var RAT=[{l:'1:1',v:'--ar 1:1'},{l:'4:5',v:'--ar 4:5'},{l:'9:16',v:'--ar 9:16'},{l:'16:9',v:'--ar 16:9'},{l:'3:4',v:'--ar 3:4'},{l:'4:3',v:'--ar 4:3'},{l:'21:9',v:'--ar 21:9'},{l:'2:3',v:'--ar 2:3'}];
 function togA(){openS('a');}function togR(){openS('r');}
-function openS(t){var hw=document.getElementById('hw'),wl=document.getElementById('hwall'),co=document.getElementById('hwcon');hw.style.display='block';wl.style.display='block';if(t==='a'){co.innerHTML='<div class="hwtit">Ângulo da câmera</div><div class="hwg">'+ANG.map(function(a){return '<div class="hws'+(selA===a?' sel':'')+'" onclick="sA(\''+a+'\')"><svg viewBox="0 0 20 20" width="22" height="22" fill="none"><path d="M5 17L10 5l5 12H5z" stroke-width="1.4" stroke-linejoin="round"/></svg><div class="hwsl">'+a+'</div></div>';}).join('')+'</div>';}else{co.innerHTML='<div class="hwtit">Proporção da tela</div><div class="hwg">'+RAT.map(function(r){return '<div class="hws'+(selR===r.v?' sel':'')+'" onclick="sR(\''+r.l+'\',\''+r.v+'\')"><svg viewBox="0 0 34 34" width="30" height="30" fill="none"><rect x="5" y="5" width="24" height="24" rx="2" stroke-width="1.5"/></svg><div class="hwsl">'+r.l+'</div></div>';}).join('')+'</div>';}}
+function openS(t){var hw=document.getElementById('hw'),wl=document.getElementById('hwall'),co=document.getElementById('hwcon');hw.style.display='block';wl.style.display='block';if(t==='a'){co.innerHTML='<div class="hwtit">Ângulo da câmera</div><div class="hwg">'+ANG.map(function(a){return '<div class="hws'+(selA===a?' sel':'')+'" onclick="sA(\\''+a+'\\')"><svg viewBox="0 0 20 20" width="22" height="22" fill="none"><path d="M5 17L10 5l5 12H5z" stroke-width="1.4" stroke-linejoin="round"/></svg><div class="hwsl">'+a+'</div></div>';}).join('')+'</div>';}else{co.innerHTML='<div class="hwtit">Proporção da tela</div><div class="hwg">'+RAT.map(function(r){return '<div class="hws'+(selR===r.v?' sel':'')+'" onclick="sR(\\''+r.l+'\\',\\''+r.v+'\\')"><svg viewBox="0 0 34 34" width="30" height="30" fill="none"><rect x="5" y="5" width="24" height="24" rx="2" stroke-width="1.5"/></svg><div class="hwsl">'+r.l+'</div></div>';}).join('')+'</div>';}}
 window.closeS=function(){document.getElementById('hw').style.display='none';document.getElementById('hwall').style.display='none';};
 window.sA=function(a){selA=a;document.getElementById('achtxt').textContent=a;document.getElementById('achip').style.display='inline-flex';document.getElementById('abtn').classList.add('sel');closeS();};
 window.clrA=function(){selA='';document.getElementById('achip').style.display='none';document.getElementById('abtn').classList.remove('sel');};
@@ -545,13 +572,13 @@ window.sR=function(l,v){selR=v;document.getElementById('rchtxt').textContent=l;d
 window.clrR=function(){selR='';document.getElementById('rchip').style.display='none';document.getElementById('rbtn').classList.remove('sel');};
 function es(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function mkPB(n,t){var sf=t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');return '<div class="pb-wrap"><div class="pb-label">Prompt '+n+'</div><pre>'+sf+'<button class="cb" data-p="'+t.replace(/"/g,'&quot;')+'">copiar</button></pre></div>';}
-function fmt(text){var proc=text.replace(/\*\*Prompt\s*(\d+)[:.?]?\*\*\s*\n?/gi,'%%P_$1%%\n');var lines=proc.split('\n'),html='',ps=[],inP=false,pn=0,pl=[];for(var i=0;i<lines.length;i++){var ln=lines[i],pm=ln.match(/^%%P_(\d+)%%/),cq=ln.includes('Qual prompt você escolhe?');if(pm){if(inP&&pl.length){var t=pl.join(' ').trim();ps.push({num:pn,text:t});html+=mkPB(pn,t);}pn=parseInt(pm[1]);inP=true;pl=[];continue;}if(inP){if(cq){if(pl.length){var t2=pl.join(' ').trim();ps.push({num:pn,text:t2});html+=mkPB(pn,t2);pl=[];}inP=false;}else if(ln.trim()){pl.push(ln.trim());continue;}else{if(pl.length){var t3=pl.join(' ').trim();ps.push({num:pn,text:t3});html+=mkPB(pn,t3);pl=[];inP=false;}continue;}}if(cq&&ps.length){lastP=ps.slice();html+='<p style="margin-top:12px;color:var(--mu);font-size:12px;">'+es(ln)+'</p><div class="pc">'+lastP.map(function(p){return '<button class="pb" onclick="pick('+p.num+')">Prompt '+p.num+'</button>';}).join('')+'</div>';ps=[];continue;}if(ln.trim())html+='<p>'+ln.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')+'</p>';}if(inP&&pl.length){var t4=pl.join(' ').trim();ps.push({num:pn,text:t4});html+=mkPB(pn,t4);}if(ps.length){lastP=ps.slice();html+='<p style="margin-top:12px;color:var(--mu);font-size:12px;">Qual prompt você escolhe? 1, 2 ou 3?</p><div class="pc">'+lastP.map(function(p){return '<button class="pb" onclick="pick('+p.num+')">Prompt '+p.num+'</button>';}).join('')+'</div>';}return html||'<p>'+es(text)+'</p>';}
-function fmtS(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').split('\n').join('<br>');}
+function fmt(text){var proc=text.replace(/\\*\\*Prompt\\s*(\\d+)[:.?]?\\*\\*\\s*\\n?/gi,'%%P_$1%%\\n');var lines=proc.split('\\n'),html='',ps=[],inP=false,pn=0,pl=[];for(var i=0;i<lines.length;i++){var ln=lines[i],pm=ln.match(/^%%P_(\\d+)%%/),cq=ln.includes('Qual prompt você escolhe?');if(pm){if(inP&&pl.length){var t=pl.join(' ').trim();ps.push({num:pn,text:t});html+=mkPB(pn,t);}pn=parseInt(pm[1]);inP=true;pl=[];continue;}if(inP){if(cq){if(pl.length){var t2=pl.join(' ').trim();ps.push({num:pn,text:t2});html+=mkPB(pn,t2);pl=[];}inP=false;}else if(ln.trim()){pl.push(ln.trim());continue;}else{if(pl.length){var t3=pl.join(' ').trim();ps.push({num:pn,text:t3});html+=mkPB(pn,t3);pl=[];inP=false;}continue;}}if(cq&&ps.length){lastP=ps.slice();html+='<p style="margin-top:12px;color:var(--mu);font-size:12px;">'+es(ln)+'</p><div class="pc">'+lastP.map(function(p){return '<button class="pb" onclick="pick('+p.num+')">Prompt '+p.num+'</button>';}).join('')+'</div>';ps=[];continue;}if(ln.trim())html+='<p>'+ln.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\*\\*(.*?)\\*\\*/g,'<strong>$1</strong>')+'</p>';}if(inP&&pl.length){var t4=pl.join(' ').trim();ps.push({num:pn,text:t4});html+=mkPB(pn,t4);}if(ps.length){lastP=ps.slice();html+='<p style="margin-top:12px;color:var(--mu);font-size:12px;">Qual prompt você escolhe? 1, 2 ou 3?</p><div class="pc">'+lastP.map(function(p){return '<button class="pb" onclick="pick('+p.num+')">Prompt '+p.num+'</button>';}).join('')+'</div>';}return html||'<p>'+es(text)+'</p>';}
+function fmtS(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\*\\*(.*?)\\*\\*/g,'<strong>$1</strong>').split('\\n').join('<br>');}
 window.pick=function(n){var p=lastP.find(function(x){return x.num===n;});if(!p)return;ti.value='Quero usar o Prompt '+n+'. '+p.text;ti.dispatchEvent(new Event('input'));ti.focus();};
 function addMsg(role,content,typing,imgUrl){var w=document.getElementById('wsc');if(w)w.remove();var d=document.createElement('div');d.className='msg '+role;var av=document.createElement('div');av.className='av '+role;av.textContent=role==='bot'?'${avInit}':'EU';var mc=document.createElement('div');mc.className='mc';if(typing){mc.innerHTML='<div class="ty"><span></span><span></span><span></span></div>';}else{if(imgUrl){var img=document.createElement('img');img.src=imgUrl;img.className='mi';mc.appendChild(img);}mc.innerHTML+=(fmt(content||''));}d.appendChild(av);d.appendChild(mc);chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return mc;}
 document.addEventListener('click',function(e){var btn=e.target.closest('.cb');if(!btn||btn.classList.contains('done'))return;e.stopPropagation();var text=btn.getAttribute('data-p')||'';var ok=function(){btn.textContent='✓';btn.classList.add('done');setTimeout(function(){btn.textContent='copiar';btn.classList.remove('done');},2500);};if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(text).then(ok).catch(function(){fb(text,ok);});else fb(text,ok);});
 function fb(t,cb){var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');if(cb)cb();}catch(e){}document.body.removeChild(ta);}
-async function doSend(){var raw=ti.value.trim(),im=imgs.slice();if(!raw&&!im.length)return;if(!curId)curId=Date.now().toString();var uc,disp=raw;if(im.length){uc=im.map(function(x){return{type:'image',source:{type:'base64',media_type:x.type,data:x.data}};});if(raw)uc.push({type:'text',text:raw});addMsg('user',disp||'📷',false,'data:'+im[0].type+';base64,'+im[0].data);}else{uc=raw;addMsg('user',raw,false,null);}history.push({role:'user',content:uc});ti.value='';ti.style.height='auto';imgs=[];upIPrev();send.disabled=true;var mc=addMsg('bot','',true,null);try{var res=await fetch(ROUTE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,stream:true,angle:selA,proportion:selR,description:raw,hasImage:im.length>0,messages:history})});var reader=res.body.getReader(),dec=new TextDecoder(),buf='',full='';mc.innerHTML='';while(true){var rv=await reader.read();if(rv.done)break;buf+=dec.decode(rv.value,{stream:true});var ls=buf.split('\n');buf=ls.pop();for(var i=0;i<ls.length;i++){var l=ls[i];if(!l.startsWith('data: '))continue;var da=l.slice(6).trim();if(da==='[DONE]')continue;try{var ev=JSON.parse(da);if(ev.type==='content_block_delta'&&ev.delta&&ev.delta.type==='text_delta'){full+=ev.delta.text;mc.innerHTML=fmtS(full);chat.scrollTop=chat.scrollHeight;}}catch(e){}}}mc.innerHTML=fmt(full);chat.scrollTop=chat.scrollHeight;history.push({role:'assistant',content:full});saveSess();}catch(e){mc.innerHTML='<p style="color:#f66">Erro de conexão.</p>';}send.disabled=false;ti.focus();}
+async function doSend(){var raw=ti.value.trim(),im=imgs.slice();if(!raw&&!im.length)return;if(!curId)curId=Date.now().toString();var uc,disp=raw;if(im.length){uc=im.map(function(x){return{type:'image',source:{type:'base64',media_type:x.type,data:x.data}};});if(raw)uc.push({type:'text',text:raw});addMsg('user',disp||'📷',false,'data:'+im[0].type+';base64,'+im[0].data);}else{uc=raw;addMsg('user',raw,false,null);}history.push({role:'user',content:uc});ti.value='';ti.style.height='auto';imgs=[];upIPrev();send.disabled=true;var mc=addMsg('bot','',true,null);try{var res=await fetch(ROUTE,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('cs_token')||'')},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,stream:true,angle:selA,proportion:selR,description:raw,hasImage:im.length>0,messages:history})});if(!res.ok){var errj={};try{errj=await res.json();}catch(e2){}mc.innerHTML='<p style="color:#f66">'+(errj.error||'Erro ao processar. Tente novamente.')+'</p>';if(res.status===401||res.status===402){setTimeout(function(){window.location.href='/#pricing';},2000);}send.disabled=false;return;}var reader=res.body.getReader(),dec=new TextDecoder(),buf='',full='';mc.innerHTML='';while(true){var rv=await reader.read();if(rv.done)break;buf+=dec.decode(rv.value,{stream:true});var ls=buf.split('\\n');buf=ls.pop();for(var i=0;i<ls.length;i++){var l=ls[i];if(!l.startsWith('data: '))continue;var da=l.slice(6).trim();if(da==='[DONE]')continue;try{var ev=JSON.parse(da);if(ev.type==='content_block_delta'&&ev.delta&&ev.delta.type==='text_delta'){full+=ev.delta.text;mc.innerHTML=fmtS(full);chat.scrollTop=chat.scrollHeight;}}catch(e){}}}mc.innerHTML=fmt(full);chat.scrollTop=chat.scrollHeight;history.push({role:'assistant',content:full});saveSess();}catch(e){mc.innerHTML='<p style="color:#f66">Erro de conexão.</p>';}send.disabled=false;ti.focus();}
 function boot(){if(init)return;init=true;send.disabled=false;ti.focus();}
 curId=Date.now().toString();rHist();boot();
 </script>
@@ -580,9 +607,20 @@ const server = http.createServer(async (req, res) => {
     try{
       const exists=await pool.query('SELECT id FROM users WHERE email=$1',[email.toLowerCase()]);
       if(exists.rows.length>0)return sendJSON(res,409,{error:'E-mail já cadastrado'});
+      // Se já pagou na Kiwify antes de se cadastrar, ativa o plano na hora
+      let startPlan='free',startCredits=0;
+      try{
+        const pend=await pool.query('SELECT plan FROM pending_plans WHERE email=$1',[email.toLowerCase()]);
+        if(pend.rows.length>0){
+          const planCredits={'starter':100,'premium':300,'enterprise':700};
+          startPlan=pend.rows[0].plan;
+          startCredits=planCredits[startPlan]||0;
+          await pool.query('DELETE FROM pending_plans WHERE email=$1',[email.toLowerCase()]);
+        }
+      }catch(e){console.error('[REGISTER] pending_plans:',e.message);}
       const r=await pool.query(
         'INSERT INTO users(email,name,password_hash,plan,credits_total,credits_used) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,email,name,plan,credits_total,credits_used',
-        [email.toLowerCase(),(name||'').trim(),sha256(password),'free',0,0]
+        [email.toLowerCase(),(name||'').trim(),sha256(password),startPlan,startCredits,0]
       );
       const user=r.rows[0];
       const token=signJWT({userId:user.id,email:user.email});
@@ -724,9 +762,76 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── Webhook Kiwify: ativa o plano automaticamente após o pagamento ────────
+  if(req.method==='POST' && url==='/webhook/kiwify') {
+    const raw=await new Promise((resolve,reject)=>{
+      const ch=[];req.on('data',c=>ch.push(Buffer.isBuffer(c)?c:Buffer.from(c)));
+      req.on('end',()=>resolve(Buffer.concat(ch).toString('utf8')));req.on('error',reject);
+    });
+    const whToken=(process.env.KIWIFY_WEBHOOK_TOKEN||'').trim();
+    const sig=new URLSearchParams(req.url.split('?')[1]||'').get('signature')||'';
+    if(whToken){
+      const expected=crypto.createHmac('sha1',whToken).update(raw).digest('hex');
+      if(sig!==expected)return sendJSON(res,401,{error:'Assinatura inválida'});
+    } else {
+      console.warn('[KIWIFY] KIWIFY_WEBHOOK_TOKEN não definido — assinatura NÃO verificada!');
+    }
+    let evt;try{evt=JSON.parse(raw);}catch{return sendJSON(res,400,{error:'JSON inválido'});}
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+
+    const prod=evt.Product||evt.product||{};
+    const pid=String(prod.product_id||prod.id||'');
+    let plan=null;
+    if(pid&&pid===(process.env.KIWIFY_PRODUCT_STARTER||''))plan='starter';
+    else if(pid&&pid===(process.env.KIWIFY_PRODUCT_PREMIUM||''))plan='premium';
+    else if(pid&&pid===(process.env.KIWIFY_PRODUCT_ENTERPRISE||''))plan='enterprise';
+    else {
+      const pname=String(prod.product_name||prod.name||'').toLowerCase();
+      if(pname.includes('starter'))plan='starter';
+      else if(pname.includes('premium'))plan='premium';
+      else if(pname.includes('enterprise'))plan='enterprise';
+    }
+    const email=String((evt.Customer&&evt.Customer.email)||(evt.customer&&evt.customer.email)||'').toLowerCase().trim();
+    const evType=String(evt.webhook_event_type||'').toLowerCase();
+    const orderStatus=String(evt.order_status||'').toLowerCase();
+    if(!email||!plan){
+      console.warn('[KIWIFY] Evento ignorado — email ou plano não identificado. event:',evType,'| product:',pid,prod.product_name);
+      return sendJSON(res,200,{ok:true,ignored:true});
+    }
+    const planCredits={'starter':100,'premium':300,'enterprise':700};
+    const activate=orderStatus==='paid'||['order_approved','subscription_renewed'].includes(evType);
+    const deactivate=['refunded','chargedback'].includes(orderStatus)||['order_refunded','chargeback','subscription_canceled'].includes(evType);
+    try{
+      if(activate){
+        const r=await pool.query(
+          'UPDATE users SET plan=$1,credits_total=$2,credits_used=0 WHERE email=$3',
+          [plan,planCredits[plan],email]
+        );
+        if(r.rowCount===0){
+          // Comprou antes de criar a conta — guarda para ativar no cadastro
+          await pool.query(
+            'INSERT INTO pending_plans(email,plan,updated_at) VALUES($1,$2,NOW()) ON CONFLICT(email) DO UPDATE SET plan=$2,updated_at=NOW()',
+            [email,plan]
+          );
+          console.log('[KIWIFY] Plano',plan,'pendente para',email,'(usuário ainda não cadastrado)');
+        } else {
+          console.log('[KIWIFY] Plano',plan,'ativado para',email);
+        }
+      } else if(deactivate){
+        await pool.query('UPDATE users SET plan=$1,credits_total=0,credits_used=0 WHERE email=$2',['free',email]);
+        await pool.query('DELETE FROM pending_plans WHERE email=$1',[email]);
+        console.log('[KIWIFY] Plano cancelado/reembolsado para',email,'| evento:',evType||orderStatus);
+      } else {
+        console.log('[KIWIFY] Evento sem ação:',evType,'| status:',orderStatus,'| email:',email);
+      }
+      sendJSON(res,200,{ok:true});
+    }catch(e){console.error('[KIWIFY] Erro:',e.message);sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
   // ── Admin: ativar plano do usuário (chamado após confirmação de pagamento) ─
   if(req.method==='POST' && url==='/admin/user/plan') {
-    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
     const body=await parseBody(req);
     const {email,plan}=body;
     const planCredits={'starter':100,'premium':300,'enterprise':700};
@@ -810,11 +915,7 @@ const server = http.createServer(async (req, res) => {
     const body=await parseBody(req);
     const {username,password}=body;
     if(!username||!password)return sendJSON(res,400,{error:'Missing fields'});
-    if(!pool){
-      const ok=(username==='admin'&&password==='pablo2025')||(username==='rubens'&&password==='pablo');
-      if(!ok)return sendJSON(res,401,{error:'Invalid credentials'});
-      return sendJSON(res,200,{token:signJWT({username}),username});
-    }
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
     try{
       const r=await pool.query('SELECT username FROM admin_users WHERE username=$1 AND password_hash=$2',[username,sha256(password)]);
       if(r.rows.length===0)return sendJSON(res,401,{error:'Invalid credentials'});
@@ -825,7 +926,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Admin GET config ─────────────────────────────────────────────────────
   if(req.method==='GET' && url==='/admin/config') {
-    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
     if(!pool)return sendJSON(res,200,{});
     try{
       const r=await pool.query('SELECT key,value FROM site_config');
@@ -837,7 +938,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Admin PUT config ─────────────────────────────────────────────────────
   if(req.method==='PUT' && url==='/admin/config') {
-    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
     const body=await parseBody(req);
     if(!pool)return sendJSON(res,200,{ok:true});
     try{
@@ -852,7 +953,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Admin change-password ────────────────────────────────────────────────
   if(req.method==='POST' && url==='/admin/change-password') {
-    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
     const body=await parseBody(req);
     const {currentPassword,newPassword}=body;
     if(!currentPassword||!newPassword)return sendJSON(res,400,{error:'Missing fields'});
@@ -869,7 +970,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Admin: criar/atualizar agente customizado ────────────────────────────
   if(req.method==='POST' && url==='/admin/agent') {
-    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
     const body=await parseBody(req);
     const {id,name,nameSpan,color,systemPrompt}=body;
     if(!id||!name||!systemPrompt)return sendJSON(res,400,{error:'id, name and systemPrompt required'});
@@ -888,7 +989,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Upload de imagem para Cloudinary ────────────────────────────────────
   if(req.method==='POST' && url==='/admin/upload-image') {
-    const user=getAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
     const CLDN_CLOUD=process.env.CLOUDINARY_CLOUD_NAME;
     const CLDN_KEY=process.env.CLOUDINARY_API_KEY;
     const CLDN_SECRET=process.env.CLOUDINARY_API_SECRET;
@@ -939,6 +1040,8 @@ const server = http.createServer(async (req, res) => {
     try{
       const r=await pool.query('SELECT key,value FROM site_config');
       const cfg={};for(const row of r.rows){try{cfg[row.key]=JSON.parse(row.value);}catch{cfg[row.key]=row.value;}}
+      // Nunca expor system prompts na config pública
+      if(Array.isArray(cfg.cards))cfg.cards=cfg.cards.map(c=>{const {systemPrompt,...rest}=c;return rest;});
       res.writeHead(200,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':'no-cache,no-store,must-revalidate','Pragma':'no-cache'});
       res.end(JSON.stringify(cfg));
     }catch(e){sendJSON(res,500,{error:e.message});}
@@ -957,11 +1060,16 @@ const server = http.createServer(async (req, res) => {
     '/extraidor':'extraidor.html','/extraidor.html':'extraidor.html',
     '/realistic':'realistic.html','/realistic.html':'realistic.html',
   };
-  // Serve static assets (images, fonts, etc.)
-  const ext = path.extname(url).toLowerCase();
-  const staticMime = {'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.svg':'image/svg+xml','.webp':'image/webp','.ico':'image/x-icon','.css':'text/css','.js':'application/javascript','.woff':'font/woff','.woff2':'font/woff2'};
+  // Serve static assets (images, fonts, etc.) — somente da pasta assets/
+  let decodedUrl;
+  try{decodedUrl=decodeURIComponent(url);}catch{res.writeHead(400);res.end('Bad request');return;}
+  const ext = path.extname(decodedUrl).toLowerCase();
+  const staticMime = {'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.svg':'image/svg+xml','.webp':'image/webp','.ico':'image/x-icon','.css':'text/css','.woff':'font/woff','.woff2':'font/woff2'};
   if(staticMime[ext]){
-    const filePath=path.join(__dirname,url);
+    const assetsDir=path.join(__dirname,'assets');
+    const filePath=path.resolve(__dirname,'.'+decodedUrl);
+    // Nunca servir fora de assets/ (bloqueia server.js, .env, node_modules, path traversal)
+    if(!filePath.startsWith(assetsDir+path.sep)){res.writeHead(404);res.end('Not found');return;}
     fs.readFile(filePath,(err,data)=>{
       if(err){res.writeHead(404);res.end('Not found');return;}
       res.writeHead(200,{'Content-Type':staticMime[ext]});
