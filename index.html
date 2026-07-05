@@ -2747,10 +2747,14 @@ async function uploadAvatar(input){
   };
   reader.readAsDataURL(file);
 }
+// Checkout Kiwify dos créditos avulsos (+100 por R$97) — produto "Cinematic AI Studio — Créditos Extras"
+var TOPUP_CHECKOUT='https://pay.kiwify.com.br/V5FmSTe';
 function buyMoreCredits(){
-  // URL da página de compra de créditos avulsos (Kiwify ou similar)
-  var buyUrl = 'https://pay.kiwify.com.br/creditos-cinematic'; // ← atualizar com link real
-  window.open(buyUrl,'_blank');
+  var u=csUser();
+  var qs=[];
+  if(u.email)qs.push('email='+encodeURIComponent(u.email));
+  if(u.name)qs.push('name='+encodeURIComponent(u.name));
+  window.location.href=TOPUP_CHECKOUT+(qs.length?'?'+qs.join('&'):'');
 }
 function confirmCancelSub(){
   if(confirm('Tem certeza que deseja cancelar sua assinatura? Entre em contato com o suporte para processar o cancelamento.')){

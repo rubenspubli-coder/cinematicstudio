@@ -847,8 +847,33 @@ const server = http.createServer(async (req, res) => {
     const email=String((evt.Customer&&evt.Customer.email)||(evt.customer&&evt.customer.email)||'').toLowerCase().trim();
     const evType=String(evt.webhook_event_type||'').toLowerCase();
     const orderStatus=String(evt.order_status||'').toLowerCase();
+    // Créditos avulsos (produto "Créditos Extras") — detectado pelo nome, antes de casar plano.
+    // "extra" é exclusivo deste produto (nenhum plano contém essa palavra), evitando conflito com o R$97 do Starter.
+    const isTopup=(pid&&pid===(process.env.KIWIFY_PRODUCT_TOPUP||''))||/extra/.test(nameBlob);
+    const TOPUP_CREDITS=100;
     // Log de diagnóstico — ajuda a conferir a estrutura real do payload nos logs da Railway
-    console.log('[KIWIFY] recebido | event:',evType,'| status:',orderStatus,'| email:',email,'| valor:',amount,'| plano detectado:',plan,'| nomes:',nameBlob.trim().slice(0,120));
+    console.log('[KIWIFY] recebido | event:',evType,'| status:',orderStatus,'| email:',email,'| valor:',amount,'| plano detectado:',isTopup?'topup':plan,'| nomes:',nameBlob.trim().slice(0,120));
+
+    if(isTopup){
+      const activate=orderStatus==='paid'||['order_approved','subscription_renewed'].includes(evType);
+      const deactivate=['refunded','chargedback'].includes(orderStatus)||['order_refunded','chargeback'].includes(evType);
+      if(!email){console.warn('[KIWIFY] Topup ignorado — email não identificado.');return sendJSON(res,200,{ok:true,ignored:true});}
+      try{
+        if(activate){
+          const r=await pool.query('UPDATE users SET credits_total=credits_total+$1 WHERE email=$2',[TOPUP_CREDITS,email]);
+          if(r.rowCount===0)console.warn('[KIWIFY] Topup pago mas conta não encontrada para',email,'— créditos não creditados (usuário precisa ter conta).');
+          else console.log('[KIWIFY] +'+TOPUP_CREDITS+' créditos avulsos creditados para',email);
+        } else if(deactivate){
+          // Reembolso: remove os 100 créditos sem deixar o saldo abaixo do já consumido
+          await pool.query('UPDATE users SET credits_total=GREATEST(credits_used,credits_total-$1) WHERE email=$2',[TOPUP_CREDITS,email]);
+          console.log('[KIWIFY] Topup reembolsado — '+TOPUP_CREDITS+' créditos removidos de',email);
+        } else {
+          console.log('[KIWIFY] Topup sem ação:',evType,'| status:',orderStatus,'| email:',email);
+        }
+        return sendJSON(res,200,{ok:true});
+      }catch(e){console.error('[KIWIFY] Erro topup:',e.message);return sendJSON(res,500,{error:e.message});}
+    }
+
     if(!email||!plan){
       console.warn('[KIWIFY] Evento ignorado — email ou plano não identificado. product:',pid,'| valor:',amount);
       return sendJSON(res,200,{ok:true,ignored:true});
