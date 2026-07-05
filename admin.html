@@ -76,6 +76,10 @@
   .vr button:hover{background:rgba(255,255,255,.1)}
   .pw2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .pw2 input{margin-bottom:0}
+  .pw-wrap{position:relative;display:flex;align-items:center}
+  .pw-wrap input{flex:1;padding-right:42px !important}
+  .pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);padding:0;display:flex;align-items:center;justify-content:center;transition:color .2s;line-height:0}
+  .pw-eye:hover{color:rgba(255,255,255,.7)}
   .overlay-row{display:grid;grid-template-columns:80px 1fr auto;gap:10px;align-items:center;margin-bottom:16px}
   .overlay-row input[type=color]{width:44px;height:38px;border-radius:8px;border:1px solid var(--border2);background:rgba(255,255,255,.04);cursor:pointer;padding:2px}
   .overlay-row input[type=range]{flex:1;accent-color:var(--accent)}
@@ -173,7 +177,13 @@
     <span class="lbl">Usuário</span>
     <input class="inp" type="text" id="lu" placeholder="admin" autocomplete="username">
     <span class="lbl">Senha</span>
-    <input class="inp" type="password" id="lp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="pw-wrap" style="margin-bottom:16px">
+      <input class="inp" type="password" id="lp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="margin-bottom:0;width:100%">
+      <button type="button" class="pw-eye" onclick="togglePw('lp',this)" aria-label="Mostrar senha">
+        <svg class="eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <svg class="eye-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
     <button class="login-btn" id="lbtn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="lerr">Usuário ou senha incorretos.</div>
   </div>
@@ -292,8 +302,20 @@
     <div class="card">
       <label>Alterar senha</label>
       <div class="pw2">
-        <input type="password" id="pwc" placeholder="Senha atual">
-        <input type="password" id="pwn" placeholder="Nova senha (mín. 6)">
+        <div class="pw-wrap">
+          <input type="password" id="pwc" placeholder="Senha atual">
+          <button type="button" class="pw-eye" onclick="togglePw('pwc',this)" aria-label="Mostrar senha">
+            <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="pw-wrap">
+          <input type="password" id="pwn" placeholder="Nova senha (mín. 6)">
+          <button type="button" class="pw-eye" onclick="togglePw('pwn',this)" aria-label="Mostrar senha">
+            <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
       </div>
       <button class="sb" onclick="changePw()">Alterar Senha</button>
     </div>
@@ -890,6 +912,14 @@ async function saveSlider() {
     }else{_S.removeItem(TK);}
   }catch(e){_S.removeItem(TK);}
 })();
+
+function togglePw(id, btn) {
+  var inp = document.getElementById(id);
+  var isHidden = inp.type === 'password';
+  inp.type = isHidden ? 'text' : 'password';
+  btn.querySelector('.eye-off').style.display = isHidden ? 'none' : '';
+  btn.querySelector('.eye-on').style.display = isHidden ? '' : 'none';
+}
 </script>
 </body>
 </html>
