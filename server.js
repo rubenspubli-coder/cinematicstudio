@@ -779,23 +779,59 @@ const server = http.createServer(async (req, res) => {
     let evt;try{evt=JSON.parse(raw);}catch{return sendJSON(res,400,{error:'JSON inválido'});}
     if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
 
+    // Busca em profundidade um valor numérico (ex.: charge_amount) em qualquer nível do payload
+    function deepNum(obj,keys){
+      const st=[obj];
+      while(st.length){const o=st.pop();
+        if(o&&typeof o==='object')for(const k of Object.keys(o)){
+          const v=o[k];
+          if(keys.includes(k)&&(typeof v==='number'||/^\d+(\.\d+)?$/.test(String(v)))){const n=Math.round(parseFloat(v));if(n>0)return n;}
+          if(v&&typeof v==='object')st.push(v);
+        }
+      }
+      return 0;
+    }
+    // Coleta todos os textos de nome (produto + oferta + plano) para casar palavra-chave
+    function deepNames(obj){
+      let out='';const st=[obj];
+      while(st.length){const o=st.pop();
+        if(o&&typeof o==='object')for(const k of Object.keys(o)){
+          const v=o[k];
+          if(typeof v==='string'&&/name|nome|offer|oferta|plan|plano/i.test(k))out+=' '+v;
+          if(v&&typeof v==='object')st.push(v);
+        }
+      }
+      return out.toLowerCase();
+    }
+
     const prod=evt.Product||evt.product||{};
     const pid=String(prod.product_id||prod.id||'');
+    const nameBlob=deepNames(evt);
+    // Valor cobrado do cliente (em centavos na Kiwify: 9700/19700/39700; aceita também reais)
+    const amount=deepNum(evt,['charge_amount','product_base_price','order_amount','amount','value']);
+    const AMOUNT_MAP={9700:'starter',19700:'premium',39700:'enterprise',97:'starter',197:'premium',397:'enterprise'};
+
     let plan=null;
+    // 1) por id de produto (caso um dia vire produtos separados) via env
     if(pid&&pid===(process.env.KIWIFY_PRODUCT_STARTER||''))plan='starter';
     else if(pid&&pid===(process.env.KIWIFY_PRODUCT_PREMIUM||''))plan='premium';
     else if(pid&&pid===(process.env.KIWIFY_PRODUCT_ENTERPRISE||''))plan='enterprise';
-    else {
-      const pname=String(prod.product_name||prod.name||'').toLowerCase();
-      if(pname.includes('starter'))plan='starter';
-      else if(pname.includes('premium'))plan='premium';
-      else if(pname.includes('enterprise'))plan='enterprise';
+    // 2) pelo nome da oferta/plano
+    if(!plan){
+      if(/enterprise/.test(nameBlob))plan='enterprise';
+      else if(/premium/.test(nameBlob))plan='premium';
+      else if(/starter/.test(nameBlob))plan='starter';
     }
+    // 3) pelo valor pago (Starter R$97 / Premium R$197 / Enterprise R$397)
+    if(!plan&&AMOUNT_MAP[amount])plan=AMOUNT_MAP[amount];
+
     const email=String((evt.Customer&&evt.Customer.email)||(evt.customer&&evt.customer.email)||'').toLowerCase().trim();
     const evType=String(evt.webhook_event_type||'').toLowerCase();
     const orderStatus=String(evt.order_status||'').toLowerCase();
+    // Log de diagnóstico — ajuda a conferir a estrutura real do payload nos logs da Railway
+    console.log('[KIWIFY] recebido | event:',evType,'| status:',orderStatus,'| email:',email,'| valor:',amount,'| plano detectado:',plan,'| nomes:',nameBlob.trim().slice(0,120));
     if(!email||!plan){
-      console.warn('[KIWIFY] Evento ignorado — email ou plano não identificado. event:',evType,'| product:',pid,prod.product_name);
+      console.warn('[KIWIFY] Evento ignorado — email ou plano não identificado. product:',pid,'| valor:',amount);
       return sendJSON(res,200,{ok:true,ignored:true});
     }
     const planCredits={'starter':100,'premium':300,'enterprise':700};
