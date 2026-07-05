@@ -202,25 +202,44 @@ async function initDB() {
       );
     `);
 
-    const exists = await pool.query('SELECT id FROM admin_users WHERE username=$1', ['admin']);
-    if (exists.rows.length === 0) {
-      await pool.query('INSERT INTO admin_users(username,password_hash) VALUES($1,$2)', ['admin', sha256('pablo2025')]);
-      console.log('Default admin created (admin/pablo2025)');
+    // ── Admin: senha lida de ADMIN_PASSWORD (nunca em texto no código) ──────────
+    const ADMIN_USER = (process.env.ADMIN_USERNAME || 'admin').trim();
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+    if (ADMIN_PASSWORD) {
+      await pool.query(
+        `INSERT INTO admin_users(username,password_hash) VALUES($1,$2)
+         ON CONFLICT(username) DO UPDATE SET password_hash=$2`,
+        [ADMIN_USER, sha256(ADMIN_PASSWORD)]
+      );
+      console.log('Admin garantido via ADMIN_PASSWORD:', ADMIN_USER);
+    } else {
+      console.warn('ADMIN_PASSWORD não definida — mantendo admin existente. Defina na Railway para (re)definir a senha do admin.');
     }
 
-    // Usuário master
-    const masterExists = await pool.query('SELECT id FROM users WHERE email=$1', ['rubenspubli@gmail.com']);
+    // ── Master: sempre enterprise; senha só é (re)definida via MASTER_PASSWORD ──
+    const MASTER_EMAIL = (process.env.MASTER_EMAIL || 'rubenspubli@gmail.com').toLowerCase().trim();
+    const MASTER_PASSWORD = process.env.MASTER_PASSWORD;
+    const masterExists = await pool.query('SELECT id FROM users WHERE email=$1', [MASTER_EMAIL]);
     if (masterExists.rows.length === 0) {
+      if (MASTER_PASSWORD) {
+        await pool.query(
+          'INSERT INTO users(email,name,password_hash,plan,credits_total,credits_used) VALUES($1,$2,$3,$4,$5,$6)',
+          [MASTER_EMAIL,'Rubens',sha256(MASTER_PASSWORD),'enterprise',999999,0]
+        );
+        console.log('Master criado:', MASTER_EMAIL);
+      } else {
+        console.warn('Master inexistente e MASTER_PASSWORD não definida — pulando criação do master.');
+      }
+    } else if (MASTER_PASSWORD) {
       await pool.query(
-        'INSERT INTO users(email,name,password_hash,plan,credits_total,credits_used) VALUES($1,$2,$3,$4,$5,$6)',
-        ['rubenspubli@gmail.com','Rubens',sha256('203040Rubens'),'enterprise',999999,0]
+        'UPDATE users SET plan=$1,credits_total=$2,password_hash=$3 WHERE email=$4',
+        ['enterprise',999999,sha256(MASTER_PASSWORD),MASTER_EMAIL]
       );
-      console.log('Master user created: rubenspubli@gmail.com');
     } else {
-      // Garantir que o master sempre tem enterprise com créditos ilimitados
+      // Mantém enterprise/créditos sem tocar na senha existente
       await pool.query(
-        'UPDATE users SET plan=$1,credits_total=$2,name=$3,password_hash=$4 WHERE email=$5',
-        ['enterprise',999999,'Rubens',sha256('203040Rubens'),'rubenspubli@gmail.com']
+        'UPDATE users SET plan=$1,credits_total=$2 WHERE email=$3',
+        ['enterprise',999999,MASTER_EMAIL]
       );
     }
 
