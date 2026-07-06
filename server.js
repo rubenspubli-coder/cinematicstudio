@@ -436,7 +436,11 @@ async function getAdminAuth(req) {
   return p;
 }
 const CLAUDE_MODEL=process.env.CLAUDE_MODEL||'claude-sonnet-4-6';
-function callAnthropic(systemPrompt, clientBody, res) {
+// onFail (opcional): chamado quando a IA falha (status >=400 ou erro de conexão),
+// para estornar créditos já debitados. Executado no máximo uma vez.
+function callAnthropic(systemPrompt, clientBody, res, onFail) {
+  let failed=false;
+  const fail=()=>{ if(failed)return; failed=true; if(typeof onFail==='function')try{onFail();}catch(e){console.error('[REFUND] callback erro:',e.message);} };
   const parsed=typeof clientBody==='string'?JSON.parse(clientBody):clientBody;
   const {angle,proportion,description,hasImage,...rest}=parsed;
   // Modelo e limite de tokens são decididos pelo servidor — nunca pelo cliente
@@ -446,10 +450,11 @@ function callAnthropic(systemPrompt, clientBody, res) {
     headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','Content-Length':Buffer.byteLength(body)}
   };
   const apiReq=https.request(opts,apiRes=>{
+    if(apiRes.statusCode>=400)fail(); // IA recusou/erro → estorna, mas ainda repassa o corpo ao cliente
     res.writeHead(apiRes.statusCode,{'Content-Type':apiRes.headers['content-type']||'application/json','Access-Control-Allow-Origin':'*'});
     apiRes.pipe(res);
   });
-  apiReq.on('error',err=>{res.writeHead(500);res.end(JSON.stringify({error:err.message}));});
+  apiReq.on('error',err=>{fail();res.writeHead(500);res.end(JSON.stringify({error:err.message}));});
   apiReq.write(body);apiReq.end();
 }
 
@@ -1053,7 +1058,9 @@ const server = http.createServer(async (req, res) => {
           sp=r.rows[0].system_prompt;
         }catch(e){res.writeHead(500);res.end(JSON.stringify({error:e.message}));return;}
       } else {res.writeHead(404);res.end('Agent not found');return;}
-      callAnthropic(sp,body,res);
+      // Estorna os 2 créditos se a IA falhar, para o usuário nunca pagar por erro do sistema
+      const refund=()=>{ if(pool)pool.query('UPDATE users SET credits_used=GREATEST(0,credits_used-2) WHERE id=$1',[uPayload.userId]).then(()=>console.log('[REFUND] 2 créditos estornados para user',uPayload.userId)).catch(e=>console.error('[REFUND] falha ao estornar user',uPayload.userId,':',e.message)); };
+      callAnthropic(sp,body,res,refund);
     });
     return;
   }
