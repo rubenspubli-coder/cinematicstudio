@@ -1628,6 +1628,20 @@ body.loaded { opacity: 1; }
         <span></span>
       </div>
     </div>
+
+    <!-- REDEFINIR SENHA (via link do e-mail) -->
+    <div id="auth-screen-reset" style="display:none">
+      <h2>Criar nova senha</h2>
+      <p class="auth-sub">Defina a nova senha da sua conta</p>
+      <div class="auth-err" id="reset-err"></div>
+      <input type="hidden" id="reset-token">
+      <div class="auth-field"><label>Nova senha</label><div class="pw-wrap"><input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"><button type="button" class="pw-eye" onclick="togglePw('reset-pass',this)" aria-label="Mostrar senha"><svg class="eye-off" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg class="eye-on" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <button class="auth-btn" id="reset-btn" onclick="doReset()">Redefinir senha</button>
+      <div class="auth-links">
+        <a onclick="showAuthScreen('login')">← Voltar ao login</a>
+        <span></span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2568,11 +2582,11 @@ function authOverlayClick(e){
   if(e.target===document.getElementById('auth-overlay'))closeAuthModal();
 }
 function showAuthScreen(name){
-  ['login','register','forgot'].forEach(function(s){
+  ['login','register','forgot','reset'].forEach(function(s){
     document.getElementById('auth-screen-'+s).style.display=(s===name)?'':'none';
   });
   // Limpar erros
-  ['login-err','reg-err','forgot-err'].forEach(function(id){
+  ['login-err','reg-err','forgot-err','reset-err'].forEach(function(id){
     var el=document.getElementById(id);
     if(el){el.style.display='none';el.textContent='';}
   });
@@ -2673,6 +2687,35 @@ async function doForgot(){
     document.getElementById('forgot-err').style.color='#86efac';
   }catch(e){showAuthErr('forgot-err','Erro de conexão.');}
   finally{btn.disabled=false; btn.textContent='Enviar instruções';}
+}
+
+// ── Redefinir senha (via link do e-mail: /?reset=TOKEN) ─
+function openResetFromUrl(){
+  var params=new URLSearchParams(window.location.search);
+  var token=params.get('reset');
+  if(!token)return;
+  document.getElementById('reset-token').value=token;
+  openAuthModal('reset');
+  // Remove o token da URL para não vazar em histórico/compartilhamento
+  history.replaceState(null,'',window.location.pathname+window.location.hash);
+}
+async function doReset(){
+  var token=document.getElementById('reset-token').value;
+  var pass=document.getElementById('reset-pass').value;
+  if(!token)return showAuthErr('reset-err','Link inválido. Solicite a redefinição novamente.');
+  if(pass.length<6)return showAuthErr('reset-err','A senha deve ter pelo menos 6 caracteres.');
+  var btn=document.getElementById('reset-btn');
+  btn.disabled=true; btn.textContent='Salvando…';
+  try{
+    var r=await fetch('/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password:pass})});
+    var d=await r.json();
+    if(!r.ok||!d.ok)return showAuthErr('reset-err',d.error||'Não foi possível redefinir. O link pode ter expirado.');
+    showAuthErr('reset-err','✓ Senha redefinida! Faça login com a nova senha.');
+    var el=document.getElementById('reset-err');
+    el.style.background='rgba(34,197,94,.12)'; el.style.borderColor='rgba(34,197,94,.3)'; el.style.color='#86efac';
+    setTimeout(function(){showAuthScreen('login');},1800);
+  }catch(e){showAuthErr('reset-err','Erro de conexão.');}
+  finally{btn.disabled=false; btn.textContent='Redefinir senha';}
 }
 
 // ── Logout ────────────────────────────────────────────
@@ -2783,6 +2826,7 @@ function csGuardAgentLinks(){
   csUpdateHeader();
   csGuardAgentLinks();
   csSync(); // atualizar dados do servidor
+  openResetFromUrl(); // abre a tela de nova senha se veio do link do e-mail
 })();
 
 // Enter nos inputs de auth
@@ -2793,6 +2837,7 @@ document.addEventListener('keydown',function(e){
   if(document.getElementById('auth-screen-login').style.display!=='none') doLogin();
   else if(document.getElementById('auth-screen-register').style.display!=='none') doRegister();
   else if(document.getElementById('auth-screen-forgot').style.display!=='none') doForgot();
+  else if(document.getElementById('auth-screen-reset').style.display!=='none') doReset();
 });
 
 function togglePw(id, btn) {

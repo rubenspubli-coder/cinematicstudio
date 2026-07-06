@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 8080;
 const API_KEY = (process.env.ANTHROPIC_API_KEY || '').trim();
 const JWT_SECRET = process.env.JWT_SECRET || 'cinematic_secret_change_me';
 const DATABASE_URL = process.env.DATABASE_URL;
+// ── E-mail transacional (Resend) ────────────────────────────────────────────
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
+const MAIL_FROM = process.env.MAIL_FROM || 'Cinematic AI Studio <no-reply@cinematicstudio.pro>';
+const APP_URL = (process.env.APP_URL || 'https://cinematicstudio.pro').replace(/\/$/, '');
 
 console.log('API_KEY length:', API_KEY.length);
 console.log('DATABASE_URL set:', !!DATABASE_URL);
@@ -347,6 +351,72 @@ function sendJSON(res,status,data) {
   res.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'});
   res.end(JSON.stringify(data));
 }
+
+// ── E-mail via Resend ───────────────────────────────────────────────────────
+// Não bloqueia o fluxo: se falhar (ou sem API key), apenas loga e segue.
+function sendEmail({to,subject,html}) {
+  return new Promise((resolve)=>{
+    if(!RESEND_API_KEY){console.warn('[MAIL] RESEND_API_KEY não definida — e-mail NÃO enviado para',to,'| assunto:',subject);return resolve(false);}
+    if(!to){console.warn('[MAIL] destinatário vazio — ignorado.');return resolve(false);}
+    const payload=JSON.stringify({from:MAIL_FROM,to:[to],subject,html});
+    const opts={hostname:'api.resend.com',path:'/emails',method:'POST',headers:{
+      'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload)}};
+    const r=https.request(opts,resp=>{
+      const ch=[];resp.on('data',c=>ch.push(c));
+      resp.on('end',()=>{
+        const bodyTxt=Buffer.concat(ch).toString('utf8');
+        if(resp.statusCode>=200&&resp.statusCode<300){console.log('[MAIL] enviado para',to,'| assunto:',subject);resolve(true);}
+        else{console.error('[MAIL] falha ('+resp.statusCode+') para',to,':',bodyTxt.slice(0,200));resolve(false);}
+      });
+    });
+    r.on('error',e=>{console.error('[MAIL] erro de conexão para',to,':',e.message);resolve(false);});
+    r.write(payload);r.end();
+  });
+}
+
+// Layout base — cabeçalho/rodapé compartilhados
+function mailLayout(inner) {
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#06040e;font-family:'Segoe UI',Arial,sans-serif;color:#f0f0f0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#06040e;padding:32px 16px;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#0f0b1e;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;">
+<tr><td style="padding:28px 32px 20px;border-bottom:1px solid rgba(255,255,255,.06);">
+<div style="font-family:'Barlow Condensed',Arial,sans-serif;font-size:22px;font-weight:800;font-style:italic;letter-spacing:.06em;text-transform:uppercase;color:#f0f0f0;">CINEMATIC <span style="color:#F5B056;">AI STUDIO</span></div>
+</td></tr>
+<tr><td style="padding:32px;">${inner}</td></tr>
+<tr><td style="padding:20px 32px;border-top:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.35);font-size:12px;line-height:1.6;">
+Você recebeu este e-mail porque tem uma conta no Cinematic AI Studio.<br>© ${new Date().getFullYear()} Cinematic AI Studio — todos os direitos reservados.
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+function mailButton(href,label) {
+  return `<a href="${href}" style="display:inline-block;background:linear-gradient(160deg,#f7c075,#F5B056 45%,#d97c20);color:#1a0e00;text-decoration:none;font-weight:700;font-size:15px;padding:13px 28px;border-radius:12px;">${label}</a>`;
+}
+function tmplReset(link) {
+  return mailLayout(`<h1 style="margin:0 0 16px;font-size:20px;color:#fff;">Redefinição de senha</h1>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Recebemos um pedido para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.</p>
+<p style="margin:0 0 24px;">${mailButton(link,'Redefinir minha senha')}</p>
+<p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);">Se você não pediu isso, ignore este e-mail — sua senha continua a mesma.<br>Se o botão não funcionar, copie e cole este link no navegador:<br><span style="color:#F5B056;word-break:break-all;">${link}</span></p>`);
+}
+function tmplWelcome(name,plan,credits) {
+  const planLabel={'starter':'Starter','premium':'Premium','enterprise':'Enterprise'}[plan]||plan;
+  return mailLayout(`<h1 style="margin:0 0 16px;font-size:20px;color:#fff;">Bem-vindo${name?', '+name:''}! 🎬</h1>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Seu pagamento foi confirmado e o <strong style="color:#F5B056;">Plano ${planLabel}</strong> já está ativo na sua conta, com <strong>${credits} créditos</strong> disponíveis. É só entrar e começar a criar.</p>
+<p style="margin:0 0 24px;">${mailButton(APP_URL,'Acessar o Studio')}</p>
+<p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);">Acesse com o e-mail e a senha que você cadastrou. Qualquer dúvida, é só responder este e-mail.</p>`);
+}
+function tmplCancel(name) {
+  return mailLayout(`<h1 style="margin:0 0 16px;font-size:20px;color:#fff;">Assinatura cancelada</h1>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Olá${name?', '+name:''}. Confirmamos o cancelamento da sua assinatura do Cinematic AI Studio. Seu acesso aos recursos do plano foi encerrado e não haverá novas cobranças.</p>
+<p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Mudou de ideia? Você pode reativar quando quiser.</p>
+<p style="margin:0 0 24px;">${mailButton(APP_URL+'/#pricing','Ver planos')}</p>
+<p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);">Se você não solicitou este cancelamento, responda este e-mail que a gente verifica.</p>`);
+}
+function tmplTopup(name,total) {
+  return mailLayout(`<h1 style="margin:0 0 16px;font-size:20px;color:#fff;">Créditos adicionados ⚡</h1>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Olá${name?', '+name:''}! Sua compra de <strong style="color:#F5B056;">+100 créditos</strong> foi confirmada e já está disponível na sua conta.${total?' Saldo total agora: <strong>'+total+' créditos</strong>.':''}</p>
+<p style="margin:0 0 24px;">${mailButton(APP_URL,'Ir para o Studio')}</p>`);
+}
 function getAuth(req) {
   const auth=req.headers['authorization']||'';
   const t=auth.startsWith('Bearer ')?auth.slice(7):null;
@@ -643,6 +713,10 @@ const server = http.createServer(async (req, res) => {
       );
       const user=r.rows[0];
       const token=signJWT({userId:user.id,email:user.email});
+      // Comprou antes de se cadastrar e o plano foi ativado agora → e-mail de boas-vindas
+      if(startPlan&&startPlan!=='free'&&startCredits>0){
+        sendEmail({to:user.email,subject:'Sua conta está ativa — Cinematic AI Studio',html:tmplWelcome(user.name,startPlan,startCredits)});
+      }
       sendJSON(res,200,{ok:true,token,user});
     }catch(e){sendJSON(res,500,{error:e.message});}
     return;
@@ -677,7 +751,9 @@ const server = http.createServer(async (req, res) => {
       const token=crypto.randomBytes(32).toString('hex');
       const expires=new Date(Date.now()+3600000); // 1h
       await pool.query('UPDATE users SET reset_token=$1,reset_token_expires=$2 WHERE email=$3',[token,expires,email.toLowerCase()]);
-      console.log('[RESET] Token para',email,':',token); // em produção: enviar por e-mail
+      const link=APP_URL+'/?reset='+token;
+      sendEmail({to:email.toLowerCase(),subject:'Redefinição de senha — Cinematic AI Studio',html:tmplReset(link)});
+      if(!RESEND_API_KEY)console.log('[RESET] (sem e-mail configurado) link para',email,':',link);
       sendJSON(res,200,{ok:true});
     }catch(e){sendJSON(res,500,{error:e.message});}
     return;
@@ -860,9 +936,12 @@ const server = http.createServer(async (req, res) => {
       if(!email){console.warn('[KIWIFY] Topup ignorado — email não identificado.');return sendJSON(res,200,{ok:true,ignored:true});}
       try{
         if(activate){
-          const r=await pool.query('UPDATE users SET credits_total=credits_total+$1 WHERE email=$2',[TOPUP_CREDITS,email]);
+          const r=await pool.query('UPDATE users SET credits_total=credits_total+$1 WHERE email=$2 RETURNING name,credits_total',[TOPUP_CREDITS,email]);
           if(r.rowCount===0)console.warn('[KIWIFY] Topup pago mas conta não encontrada para',email,'— créditos não creditados (usuário precisa ter conta).');
-          else console.log('[KIWIFY] +'+TOPUP_CREDITS+' créditos avulsos creditados para',email);
+          else {
+            console.log('[KIWIFY] +'+TOPUP_CREDITS+' créditos avulsos creditados para',email);
+            sendEmail({to:email,subject:'Créditos adicionados — Cinematic AI Studio',html:tmplTopup(r.rows[0].name,r.rows[0].credits_total)});
+          }
         } else if(deactivate){
           // Reembolso: remove os 100 créditos sem deixar o saldo abaixo do já consumido
           await pool.query('UPDATE users SET credits_total=GREATEST(credits_used,credits_total-$1) WHERE email=$2',[TOPUP_CREDITS,email]);
@@ -884,7 +963,7 @@ const server = http.createServer(async (req, res) => {
     try{
       if(activate){
         const r=await pool.query(
-          'UPDATE users SET plan=$1,credits_total=$2,credits_used=0 WHERE email=$3',
+          'UPDATE users SET plan=$1,credits_total=$2,credits_used=0 WHERE email=$3 RETURNING name',
           [plan,planCredits[plan],email]
         );
         if(r.rowCount===0){
@@ -894,13 +973,16 @@ const server = http.createServer(async (req, res) => {
             [email,plan]
           );
           console.log('[KIWIFY] Plano',plan,'pendente para',email,'(usuário ainda não cadastrado)');
+          // E-mail de boas-vindas será enviado no cadastro (quando o pending_plan é consumido)
         } else {
           console.log('[KIWIFY] Plano',plan,'ativado para',email);
+          sendEmail({to:email,subject:'Sua conta está ativa — Cinematic AI Studio',html:tmplWelcome(r.rows[0].name,plan,planCredits[plan])});
         }
       } else if(deactivate){
-        await pool.query('UPDATE users SET plan=$1,credits_total=0,credits_used=0 WHERE email=$2',['free',email]);
+        const r=await pool.query('UPDATE users SET plan=$1,credits_total=0,credits_used=0 WHERE email=$2 RETURNING name',['free',email]);
         await pool.query('DELETE FROM pending_plans WHERE email=$1',[email]);
         console.log('[KIWIFY] Plano cancelado/reembolsado para',email,'| evento:',evType||orderStatus);
+        if(r.rowCount>0)sendEmail({to:email,subject:'Assinatura cancelada — Cinematic AI Studio',html:tmplCancel(r.rows[0].name)});
       } else {
         console.log('[KIWIFY] Evento sem ação:',evType,'| status:',orderStatus,'| email:',email);
       }
