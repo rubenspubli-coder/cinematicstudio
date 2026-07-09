@@ -16,11 +16,68 @@ const APP_URL = (process.env.APP_URL || 'https://cinematicstudio.pro').replace(/
 
 console.log('API_KEY length:', API_KEY.length);
 console.log('DATABASE_URL set:', !!DATABASE_URL);
-const _cldFound = Object.keys(process.env).filter(k => k.startsWith('CLOUDINARY'));
-console.log('CLOUDINARY vars found:', _cldFound.length ? _cldFound.join(', ') : 'NONE');
-console.log('CLOUDINARY_API_KEY defined:', 'CLOUDINARY_API_KEY' in process.env, '| length:', (process.env.CLOUDINARY_API_KEY||'').length);
 
 const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL, ssl: /localhost|127\.0\.0\.1/.test(DATABASE_URL) ? false : { rejectUnauthorized: false } }) : null;
+
+// ── R2 (Cloudflare) - armazenamento de imagens ──────────────────────────────
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_PUBLIC_URL = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
+console.log('R2 configurado:', !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET_NAME && R2_PUBLIC_URL));
+
+function r2Configured() { return !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET_NAME && R2_PUBLIC_URL); }
+
+function parseDataUri(dataUri) {
+  const m = /^data:([^;]+);base64,(.+)$/.exec(dataUri || '');
+  if (!m) return null;
+  return { contentType: m[1], buffer: Buffer.from(m[2], 'base64') };
+}
+
+function uploadToR2(key, buffer, contentType) {
+  return new Promise((resolve, reject) => {
+    const host = `${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    const region = 'auto', service = 's3';
+    const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+    const dateStamp = amzDate.slice(0, 8);
+    const payloadHash = crypto.createHash('sha256').update(buffer).digest('hex');
+    const canonicalUri = '/' + R2_BUCKET_NAME + '/' + key.split('/').map(encodeURIComponent).join('/');
+    const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+    const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+    const canonicalRequest = ['PUT', canonicalUri, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, crypto.createHash('sha256').update(canonicalRequest).digest('hex')].join('\n');
+    const hmac = (key2, data) => crypto.createHmac('sha256', key2).update(data).digest();
+    const kDate = hmac('AWS4' + R2_SECRET_ACCESS_KEY, dateStamp);
+    const kRegion = hmac(kDate, region);
+    const kService = hmac(kRegion, service);
+    const kSigning = hmac(kService, 'aws4_request');
+    const signature = hmac(kSigning, stringToSign).toString('hex');
+    const authorization = `AWS4-HMAC-SHA256 Credential=${R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+    const opts = {
+      hostname: host, path: canonicalUri, method: 'PUT',
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': buffer.length,
+        'x-amz-content-sha256': payloadHash,
+        'x-amz-date': amzDate,
+        'Authorization': authorization
+      }
+    };
+    const apiReq = https.request(opts, apiRes => {
+      const chunks = [];
+      apiRes.on('data', c => chunks.push(c));
+      apiRes.on('end', () => {
+        if (apiRes.statusCode >= 200 && apiRes.statusCode < 300) resolve(`${R2_PUBLIC_URL}/${key}`);
+        else reject(new Error(`R2 upload falhou (${apiRes.statusCode}): ${Buffer.concat(chunks).toString('utf8').slice(0, 300)}`));
+      });
+    });
+    apiReq.on('error', reject);
+    apiReq.write(buffer);
+    apiReq.end();
+  });
+}
 
 // ── SYSTEM PROMPTS ─────────────────────────────────────────────────────────────
 
@@ -802,42 +859,19 @@ const server = http.createServer(async (req, res) => {
     let payload;try{payload=verifyJWT(tok);}catch{return sendJSON(res,401,{error:'Token inválido'});}
     if(!payload||!payload.userId)return sendJSON(res,401,{error:'Token inválido'});
     if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
-    const CLDN_CLOUD=process.env.CLOUDINARY_CLOUD_NAME;
-    const CLDN_KEY=process.env.CLOUDINARY_API_KEY;
-    const CLDN_SECRET=process.env.CLOUDINARY_API_SECRET;
-    if(!CLDN_CLOUD||!CLDN_KEY||!CLDN_SECRET)return sendJSON(res,503,{error:'Cloudinary não configurado'});
+    if(!r2Configured())return sendJSON(res,503,{error:'Armazenamento de imagens não configurado'});
     try{
       const body=await parseBody(req);
       const {data}=body;
       if(!data)return sendJSON(res,400,{error:'Campo data ausente'});
-      const f='cinematic/avatars';
-      const ts=Math.round(Date.now()/1000);
-      const sigStr=`folder=${f}&timestamp=${ts}${CLDN_SECRET}`;
-      const sig=crypto.createHash('sha1').update(sigStr).digest('hex');
-      const boundary='cld'+crypto.randomBytes(12).toString('hex');
-      function mkPart(name,value){return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;}
-      const bodyStr=mkPart('file',data)+mkPart('api_key',CLDN_KEY)+mkPart('timestamp',String(ts))+mkPart('folder',f)+mkPart('signature',sig)+`--${boundary}--\r\n`;
-      const bodyBuf=Buffer.from(bodyStr,'binary');
-      const opts={hostname:'api.cloudinary.com',path:`/v1_1/${CLDN_CLOUD}/image/upload`,method:'POST',
-        headers:{'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':bodyBuf.length}};
-      await new Promise((resolve,reject)=>{
-        const apiReq=https.request(opts,apiRes=>{
-          const chunks=[];
-          apiRes.on('data',c=>chunks.push(c));
-          apiRes.on('end',async()=>{
-            try{
-              const j=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-              if(!j.secure_url){sendJSON(res,500,{error:j.error?.message||'Upload falhou'});return resolve();}
-              await pool.query('UPDATE users SET avatar_url=$1 WHERE id=$2',[j.secure_url,payload.userId]);
-              const ur=await pool.query('SELECT id,email,name,plan,credits_total,credits_used,avatar_url FROM users WHERE id=$1',[payload.userId]);
-              sendJSON(res,200,{ok:true,user:ur.rows[0]});
-            }catch(e){sendJSON(res,500,{error:e.message});}
-            resolve();
-          });
-        });
-        apiReq.on('error',err=>{sendJSON(res,500,{error:err.message});resolve();});
-        apiReq.write(bodyBuf);apiReq.end();
-      });
+      const parsed=parseDataUri(data);
+      if(!parsed)return sendJSON(res,400,{error:'Formato de imagem inválido'});
+      const ext=(parsed.contentType.split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,'');
+      const key=`cinematic/avatars/${payload.userId}-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+      const url=await uploadToR2(key,parsed.buffer,parsed.contentType);
+      await pool.query('UPDATE users SET avatar_url=$1 WHERE id=$2',[url,payload.userId]);
+      const ur=await pool.query('SELECT id,email,name,plan,credits_total,credits_used,avatar_url FROM users WHERE id=$1',[payload.userId]);
+      sendJSON(res,200,{ok:true,user:ur.rows[0]});
     }catch(e){sendJSON(res,500,{error:e.message});}
     return;
   }
@@ -1156,46 +1190,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Upload de imagem para Cloudinary ────────────────────────────────────
+  // ── Upload de imagem para R2 ─────────────────────────────────────────────
   if(req.method==='POST' && url==='/admin/upload-image') {
     const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
-    const CLDN_CLOUD=process.env.CLOUDINARY_CLOUD_NAME;
-    const CLDN_KEY=process.env.CLOUDINARY_API_KEY;
-    const CLDN_SECRET=process.env.CLOUDINARY_API_SECRET;
-    console.log('[UPLOAD] cloud:', CLDN_CLOUD||'NOT SET', '| key:', CLDN_KEY?'SET':'NOT SET', '| secret:', CLDN_SECRET?'SET':'NOT SET');
-    if(!CLDN_CLOUD||!CLDN_KEY||!CLDN_SECRET)
-      return sendJSON(res,503,{error:'Cloudinary não configurado. Variáveis faltando: '+ [!CLDN_CLOUD&&'CLOUDINARY_CLOUD_NAME',!CLDN_KEY&&'CLOUDINARY_API_KEY',!CLDN_SECRET&&'CLOUDINARY_API_SECRET'].filter(Boolean).join(', ')});
+    console.log('[UPLOAD] R2 configurado:', r2Configured());
+    if(!r2Configured())
+      return sendJSON(res,503,{error:'Armazenamento de imagens não configurado. Variáveis faltando: '+ [!R2_ACCOUNT_ID&&'R2_ACCOUNT_ID',!R2_ACCESS_KEY_ID&&'R2_ACCESS_KEY_ID',!R2_SECRET_ACCESS_KEY&&'R2_SECRET_ACCESS_KEY',!R2_BUCKET_NAME&&'R2_BUCKET_NAME',!R2_PUBLIC_URL&&'R2_PUBLIC_URL'].filter(Boolean).join(', ')});
     const body=await parseBody(req);
     const {data,folder}=body;
     if(!data){console.error('[UPLOAD] body sem campo data, keys recebidas:',Object.keys(body));return sendJSON(res,400,{error:'Campo data ausente no body'});}
     console.log('[UPLOAD] data size:', data.length, '| folder:', folder);
-    const ts=Math.round(Date.now()/1000);
+    const parsed=parseDataUri(data);
+    if(!parsed)return sendJSON(res,400,{error:'Formato de imagem inválido'});
     const f=(folder||'cinematic').replace(/[^a-z0-9/_-]/gi,'');
-    const sigStr=`folder=${f}&timestamp=${ts}${CLDN_SECRET}`;
-    const sig=crypto.createHash('sha1').update(sigStr).digest('hex');
-    const boundary='cld'+crypto.randomBytes(12).toString('hex');
-    function mkPart(name,value){return `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`;}
-    const bodyStr=mkPart('file',data)+mkPart('api_key',CLDN_KEY)+mkPart('timestamp',String(ts))+mkPart('folder',f)+mkPart('signature',sig)+`--${boundary}--\r\n`;
-    const bodyBuf=Buffer.from(bodyStr,'binary');
-    const opts={
-      hostname:'api.cloudinary.com',path:`/v1_1/${CLDN_CLOUD}/image/upload`,method:'POST',
-      headers:{'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':bodyBuf.length}
-    };
-    const apiReq=https.request(opts,apiRes=>{
-      const chunks=[];
-      apiRes.on('data',c=>chunks.push(c));
-      apiRes.on('end',()=>{
-        const rb=Buffer.concat(chunks).toString('utf8');
-        console.log('[UPLOAD] Cloudinary status:', apiRes.statusCode, '| response:', rb.slice(0,300));
-        try{
-          const j=JSON.parse(rb);
-          if(j.secure_url){sendJSON(res,200,{url:j.secure_url,public_id:j.public_id});}
-          else{console.error('[UPLOAD] Cloudinary error:',j.error);sendJSON(res,500,{error:j.error?.message||'Upload falhou'});}
-        }catch(e){console.error('[UPLOAD] JSON parse error:',e.message);sendJSON(res,500,{error:'Resposta inválida do Cloudinary: '+rb.slice(0,100)});}
-      });
-    });
-    apiReq.on('error',err=>{console.error('[UPLOAD] HTTPS error:',err.message);sendJSON(res,500,{error:err.message});});
-    apiReq.write(bodyBuf);apiReq.end();
+    const ext=(parsed.contentType.split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,'');
+    const key=`${f}/${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+    try{
+      const url=await uploadToR2(key,parsed.buffer,parsed.contentType);
+      sendJSON(res,200,{url,public_id:key});
+    }catch(e){
+      console.error('[UPLOAD] R2 error:',e.message);
+      sendJSON(res,500,{error:e.message});
+    }
     return;
   }
 
