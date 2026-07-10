@@ -2174,6 +2174,11 @@ window.addEventListener('scroll',function(){
       });
     }
     if(cfg.sliderItems&&window._cfApplyConfig)window._cfApplyConfig(cfg.sliderItems);
+    if(cfg.faviconBase64){
+      var lnk=document.querySelector("link[rel~='icon']");
+      if(!lnk){lnk=document.createElement('link');lnk.rel='icon';document.head.appendChild(lnk);}
+      lnk.href=cfg.faviconBase64;
+    }
   }catch(e){}
 })();
 
