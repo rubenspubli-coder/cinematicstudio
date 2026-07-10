@@ -53,7 +53,7 @@ header {
 .menu-inner { padding:14px 20px 16px; }
 .menu-slabel { font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px; }
 .menu-btn-row { display:flex;gap:8px;flex-wrap:wrap; }
-.mitem { display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:#aaa;font-size:12.5px;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap; }
+.mitem { display:flex;align-items:center;gap:8px;padding:9px 13px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;color:#aaa;font-size:12.5px;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;text-decoration:none; }
 .mitem:hover { border-color:var(--gdim);color:var(--green); }
 .mitem svg { width:15px;height:15px;flex-shrink:0; }
 #angles-panel { overflow:hidden;max-height:0;transition:max-height .25s ease;border-top:1px solid transparent;flex-shrink:0; }
@@ -364,6 +364,16 @@ header {
         <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#aaa" stroke-width="1.3"></rect><path d="M8 10V6M6 8l2-2 2 2" stroke="#aaa" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
         Upscaling
       </button>
+    </div>
+    <div class="menu-slabel" style="margin-top:14px;">Agentes</div>
+    <div class="menu-btn-row">
+      <span class="mitem" style="border-color:var(--green);color:var(--green);cursor:default;"><span style="width:8px;height:8px;border-radius:50%;background:#39ff14;flex-shrink:0;"></span>Sports Studio</span>
+      <a class="mitem" href="mascot.html"><span style="width:8px;height:8px;border-radius:50%;background:#FFDC1B;flex-shrink:0;"></span>Mascot Studio</a>
+      <a class="mitem" href="lettering.html"><span style="width:8px;height:8px;border-radius:50%;background:#0090ff;flex-shrink:0;"></span>Lettering Studio</a>
+      <a class="mitem" href="illusion.html"><span style="width:8px;height:8px;border-radius:50%;background:#F50579;flex-shrink:0;"></span>Illusion Studio</a>
+      <a class="mitem" href="liveaction.html"><span style="width:8px;height:8px;border-radius:50%;background:#BA3232;flex-shrink:0;"></span>Live Action</a>
+      <a class="mitem" href="realistic.html"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0;"></span>Realistic</a>
+      <a class="mitem" href="extraidor.html"><span style="width:8px;height:8px;border-radius:50%;background:#d55715;flex-shrink:0;"></span>Extrator de Prompt</a>
     </div>
   </div>
 </div>
