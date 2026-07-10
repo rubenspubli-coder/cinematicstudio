@@ -82,6 +82,49 @@ function uploadToR2(key, buffer, contentType) {
   });
 }
 
+function downloadFile(fileUrl, redirectsLeft) {
+  redirectsLeft = redirectsLeft == null ? 5 : redirectsLeft;
+  return new Promise((resolve, reject) => {
+    https.get(fileUrl, apiRes => {
+      if (apiRes.statusCode >= 300 && apiRes.statusCode < 400 && apiRes.headers.location && redirectsLeft > 0) {
+        apiRes.resume();
+        return resolve(downloadFile(new URL(apiRes.headers.location, fileUrl).toString(), redirectsLeft - 1));
+      }
+      if (apiRes.statusCode !== 200) { apiRes.resume(); return reject(new Error(`Download falhou (${apiRes.statusCode}): ${fileUrl}`)); }
+      const contentType = apiRes.headers['content-type'] || 'image/jpeg';
+      const chunks = [];
+      apiRes.on('data', c => chunks.push(c));
+      apiRes.on('end', () => resolve({ buffer: Buffer.concat(chunks), contentType }));
+      apiRes.on('error', reject);
+    }).on('error', reject);
+  });
+}
+
+function isCloudinaryUrl(v) { return typeof v === 'string' && /^https?:\/\/[^"']*cloudinary\.com\//i.test(v); }
+
+async function migrateCloudinaryValue(value, cache, folder) {
+  if (Array.isArray(value)) {
+    const out = [];
+    for (const item of value) out.push(await migrateCloudinaryValue(item, cache, folder));
+    return out;
+  }
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const k of Object.keys(value)) out[k] = await migrateCloudinaryValue(value[k], cache, folder);
+    return out;
+  }
+  if (isCloudinaryUrl(value)) {
+    if (cache.has(value)) return cache.get(value);
+    const { buffer, contentType } = await downloadFile(value);
+    const ext = (contentType.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
+    const key = `${folder}/${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+    const newUrl = await uploadToR2(key, buffer, contentType);
+    cache.set(value, newUrl);
+    return newUrl;
+  }
+  return value;
+}
+
 // ── SYSTEM PROMPTS ─────────────────────────────────────────────────────────────
 
 const BASE_STYLE_SPORTS = "Ultra-realistic 3D character render, photorealistic skin texture, AAA video game graphics style. Highly realistic cinematic 3D scene, ultra-detailed fabric simulation, lifelike skin shading with pores, slight sweat reflection and subsurface scattering. Lighting using balanced three-point and soft rim light, cinematic anamorphic bokeh, gaussian depth blur, atmospheric haze, ultra-realistic details, high-resolution textures, sharp focus, color-accurate rendering, intense artificial candy tones, 8K clarity, Pixar-inspired stylized proportions, RenderMan (Pixar), MoonRay (DreamWorks), MGLR (Illumination), Cartoonity Sora, Unreal Engine 5, Unity.";
@@ -1153,6 +1196,42 @@ const server = http.createServer(async (req, res) => {
         await pool.query('INSERT INTO site_config(key,value,updated_at) VALUES($1,$2,NOW()) ON CONFLICT(key) DO UPDATE SET value=$2,updated_at=NOW()',[key,val]);
       }
       sendJSON(res,200,{ok:true});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  // ── Admin: migra imagens remanescentes do Cloudinary para o R2 ─────────────
+  if(req.method==='POST' && url==='/admin/migrate-images-to-r2') {
+    const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    if(!r2Configured())return sendJSON(res,503,{error:'R2 não configurado'});
+    const cache=new Map();
+    const migrated=[];
+    const failed=[];
+    try{
+      const cfgRows=await pool.query('SELECT key,value FROM site_config');
+      for(const row of cfgRows.rows){
+        let parsed;
+        try{parsed=JSON.parse(row.value);}catch{parsed=row.value;}
+        try{
+          const newValue=await migrateCloudinaryValue(parsed,cache,'cinematic/migrated');
+          const newValStr=typeof newValue==='string'?newValue:JSON.stringify(newValue);
+          if(newValStr!==row.value){
+            await pool.query('UPDATE site_config SET value=$1,updated_at=NOW() WHERE key=$2',[newValStr,row.key]);
+          }
+        }catch(e){failed.push({key:row.key,error:e.message});}
+      }
+      const usersRows=await pool.query("SELECT id,avatar_url FROM users WHERE avatar_url LIKE '%cloudinary%'");
+      for(const u of usersRows.rows){
+        try{
+          const newUrl=await migrateCloudinaryValue(u.avatar_url,cache,'cinematic/avatars');
+          if(newUrl!==u.avatar_url){
+            await pool.query('UPDATE users SET avatar_url=$1 WHERE id=$2',[newUrl,u.id]);
+          }
+        }catch(e){failed.push({userId:u.id,error:e.message});}
+      }
+      for(const [oldUrl,newUrl] of cache.entries())migrated.push({from:oldUrl,to:newUrl});
+      sendJSON(res,200,{ok:true,migratedCount:migrated.length,migrated,failed});
     }catch(e){sendJSON(res,500,{error:e.message});}
     return;
   }
