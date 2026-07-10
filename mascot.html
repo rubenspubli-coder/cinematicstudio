@@ -428,18 +428,7 @@ header {
 
 <div id="menu-panel">
   <div class="menu-inner">
-    <div class="menu-slabel">Ferramentas</div>
-    <div class="menu-btn-row">
-      <button class="mitem" id="btn-angles" onclick="toggleAngles()">
-        <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#aaa" stroke-width="1.3"></circle><circle cx="8" cy="8" r="1.5" fill="#aaa"></circle><line x1="8" y1="2.5" x2="8" y2="5" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"></line><line x1="8" y1="11" x2="8" y2="13.5" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"></line><line x1="2.5" y1="8" x2="5" y2="8" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"></line><line x1="11" y1="8" x2="13.5" y2="8" stroke="#aaa" stroke-width="1.2" stroke-linecap="round"></line></svg>
-        Ângulos de câmera
-      </button>
-      <button class="mitem" onclick="openUpscaleModal()">
-        <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="#aaa" stroke-width="1.3"></rect><path d="M8 10V6M6 8l2-2 2 2" stroke="#aaa" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        Upscaling
-      </button>
-    </div>
-    <div class="menu-slabel" style="margin-top:14px;">Agentes</div>
+    <div class="menu-slabel">Agentes</div>
     <div class="menu-btn-row">
       <a class="mitem" href="sports.html"><span style="width:8px;height:8px;border-radius:50%;background:#39ff14;flex-shrink:0;"></span>Sports Studio</a>
       <span class="mitem" style="border-color:var(--green);color:var(--green);cursor:default;"><span style="width:8px;height:8px;border-radius:50%;background:#FFDC1B;flex-shrink:0;"></span>Mascot Studio</span>
@@ -884,7 +873,6 @@ function selectAngle(card) {
   document.getElementById('angle-chip').classList.add('on');
   document.getElementById('angle-inline-btn').classList.add('sel');
   document.getElementById('angles-panel').classList.remove('open');
-  document.getElementById('btn-angles').classList.remove('active-menu');
   document.getElementById('angle-dropdown').classList.remove('open');
   document.getElementById('angle-inline-btn').style.borderColor='';
 }
@@ -977,7 +965,7 @@ document.getElementById('hbg-btn').addEventListener('click', function() {
   const mp=document.getElementById('menu-panel');
   const isOpen=mp.classList.toggle('open');
   this.classList.toggle('open',isOpen);
-  if (!isOpen) { document.getElementById('angles-panel').classList.remove('open'); document.getElementById('btn-angles').classList.remove('active-menu'); }
+  if (!isOpen) { document.getElementById('angles-panel').classList.remove('open'); }
 });
 
 document.addEventListener('click', function(e) {
