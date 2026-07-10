@@ -20,7 +20,10 @@ console.log('DATABASE_URL set:', !!DATABASE_URL);
 const pool = DATABASE_URL ? new Pool({ connectionString: DATABASE_URL, ssl: /localhost|127\.0\.0\.1/.test(DATABASE_URL) ? false : { rejectUnauthorized: false } }) : null;
 
 // ── R2 (Cloudflare) - armazenamento de imagens ──────────────────────────────
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+function sanitizeR2AccountId(v) {
+  return (v || '').trim().replace(/^https?:\/\//, '').replace(/\.r2\.cloudflarestorage\.com\/?$/, '').replace(/\/$/, '');
+}
+const R2_ACCOUNT_ID = sanitizeR2AccountId(process.env.R2_ACCOUNT_ID);
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
