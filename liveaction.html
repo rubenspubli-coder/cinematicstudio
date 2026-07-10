@@ -400,7 +400,7 @@ header {
     <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1.5" width="4.5" height="13" rx="1.5" fill="#555"></rect><rect x="8" y="3.5" width="7" height="1.8" rx=".9" fill="#555"></rect><rect x="8" y="7.1" width="7" height="1.8" rx=".9" fill="#555"></rect><rect x="8" y="10.7" width="7" height="1.8" rx=".9" fill="#555"></rect></svg>
   </button>
   <div class="status">
-    <a class="agent-buy-btn" id="agent-buy-btn" href="https://pay.kiwify.com.br/creditos-cinematic" target="_blank" title="+100 créditos por R$97" style="display:none">+ créditos</a>
+    <a class="agent-buy-btn" id="agent-buy-btn" href="https://pay.kiwify.com.br/V5FmSTe" target="_blank" title="+100 créditos por R$97" style="display:none">+ créditos</a>
     <button class="agent-cr-btn" id="agent-cr-btn" onclick="window.location.href='/#pricing'" title="Seus créditos — clique para ver planos">
       <svg viewBox="0 0 36 36">
         <circle class="agent-cr-bg" cx="18" cy="18" r="14"/>
@@ -1048,7 +1048,7 @@ boot();
     var el=document.getElementById('agent-cr-num');
     if(el) el.textContent=(total>=999000)?'∞':remaining;
     var buyBtn=document.getElementById('agent-buy-btn');
-    if(buyBtn) buyBtn.style.display=(u.plan&&u.plan!=='free')?'flex':'none';
+    if(buyBtn){buyBtn.style.display=(u.plan&&u.plan!=='free')?'flex':'none';var qs=[];if(u.email)qs.push('email='+encodeURIComponent(u.email));if(u.name)qs.push('name='+encodeURIComponent(u.name));buyBtn.href='https://pay.kiwify.com.br/V5FmSTe'+(qs.length?'?'+qs.join('&'):'');}
     var fill=document.getElementById('agent-cr-fill');
     if(fill&&total>0){
       var pct=remaining/total;
