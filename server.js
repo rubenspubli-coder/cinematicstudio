@@ -271,8 +271,14 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         username VARCHAR(80) UNIQUE NOT NULL,
         password_hash VARCHAR(128) NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
+        created_at TIMESTAMP DEFAULT NOW(),
+        email VARCHAR(200),
+        reset_token VARCHAR(128),
+        reset_token_expires TIMESTAMP
       );
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS email VARCHAR(200);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(128);
+      ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP;
       CREATE TABLE IF NOT EXISTS site_config (
         key VARCHAR(100) PRIMARY KEY,
         value TEXT NOT NULL,
@@ -321,6 +327,10 @@ async function initDB() {
       console.log('Admin garantido via ADMIN_PASSWORD:', ADMIN_USER);
     } else {
       console.warn('ADMIN_PASSWORD não definida — mantendo admin existente. Defina na Railway para (re)definir a senha do admin.');
+    }
+    const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    if (ADMIN_EMAIL) {
+      await pool.query('UPDATE admin_users SET email=$1 WHERE username=$2', [ADMIN_EMAIL, ADMIN_USER]);
     }
 
     // ── Master: sempre enterprise; senha só é (re)definida via MASTER_PASSWORD ──
@@ -500,6 +510,28 @@ function tmplReset(link) {
 <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Recebemos um pedido para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.</p>
 <p style="margin:0 0 24px;">${mailButton(link,'Redefinir minha senha')}</p>
 <p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);">Se você não pediu isso, ignore este e-mail — sua senha continua a mesma.<br>Se o botão não funcionar, copie e cole este link no navegador:<br><span style="color:#F5B056;word-break:break-all;">${link}</span></p>`);
+}
+function tmplAdminReset(link) {
+  return mailLayout(`<h1 style="margin:0 0 16px;font-size:20px;color:#fff;">Redefinição de senha — Painel Admin</h1>
+<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:rgba(255,255,255,.75);">Recebemos um pedido para redefinir a senha do painel de administração. Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.</p>
+<p style="margin:0 0 24px;">${mailButton(link,'Redefinir senha do admin')}</p>
+<p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);">Se você não pediu isso, ignore este e-mail — a senha continua a mesma.<br>Se o botão não funcionar, copie e cole este link no navegador:<br><span style="color:#F5B056;word-break:break-all;">${link}</span></p>`);
+}
+function maintenanceHTML() {
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Site em manutenção — Cinematic AI Studio</title>
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#07070a;font-family:'Segoe UI',Arial,sans-serif;color:#f0f0f0;text-align:center;padding:24px;box-sizing:border-box;}
+  .box{max-width:480px;}
+  .logo{font-size:24px;font-weight:800;font-style:italic;letter-spacing:.06em;text-transform:uppercase;margin-bottom:24px;}
+  .logo span{color:#f5b056;}
+  h1{font-size:26px;margin:0 0 14px;}
+  p{font-size:15px;line-height:1.7;color:rgba(255,255,255,.65);margin:0;}
+</style></head>
+<body><div class="box">
+<div class="logo">CINEMATIC <span>AI STUDIO</span></div>
+<h1>Site em manutenção</h1>
+<p>Desculpe o transtorno. Estamos fazendo alguns ajustes e voltamos em breve.</p>
+</div></body></html>`;
 }
 function tmplWelcome(name,plan,credits) {
   const planLabel={'starter':'Starter','premium':'Premium','enterprise':'Enterprise'}[plan]||plan;
@@ -1173,6 +1205,42 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── Admin forgot-password ────────────────────────────────────────────────
+  if(req.method==='POST' && url==='/admin/forgot-password') {
+    const body=await parseBody(req);
+    const {username}=body;
+    if(!username)return sendJSON(res,400,{error:'Usuário obrigatório'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query('SELECT email FROM admin_users WHERE username=$1',[username]);
+      if(r.rows.length===0||!r.rows[0].email)return sendJSON(res,200,{ok:true}); // não revelar se existe
+      const token=crypto.randomBytes(32).toString('hex');
+      const expires=new Date(Date.now()+3600000); // 1h
+      await pool.query('UPDATE admin_users SET reset_token=$1,reset_token_expires=$2 WHERE username=$3',[token,expires,username]);
+      const link=APP_URL+'/admin.html?reset='+token;
+      sendEmail({to:r.rows[0].email,subject:'Redefinição de senha — Painel Admin',html:tmplAdminReset(link)});
+      if(!RESEND_API_KEY)console.log('[ADMIN RESET] (sem e-mail configurado) link para',username,':',link);
+      sendJSON(res,200,{ok:true});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
+  // ── Admin reset-password ─────────────────────────────────────────────────
+  if(req.method==='POST' && url==='/admin/reset-password') {
+    const body=await parseBody(req);
+    const {token,password}=body;
+    if(!token||!password)return sendJSON(res,400,{error:'Token e senha obrigatórios'});
+    if(password.length<6)return sendJSON(res,400,{error:'Senha deve ter pelo menos 6 caracteres'});
+    if(!pool)return sendJSON(res,503,{error:'Banco de dados indisponível'});
+    try{
+      const r=await pool.query('SELECT id FROM admin_users WHERE reset_token=$1 AND reset_token_expires>NOW()',[token]);
+      if(r.rows.length===0)return sendJSON(res,400,{error:'Token inválido ou expirado'});
+      await pool.query('UPDATE admin_users SET password_hash=$1,reset_token=NULL,reset_token_expires=NULL WHERE id=$2',[sha256(password),r.rows[0].id]);
+      sendJSON(res,200,{ok:true});
+    }catch(e){sendJSON(res,500,{error:e.message});}
+    return;
+  }
+
   // ── Admin GET config ─────────────────────────────────────────────────────
   if(req.method==='GET' && url==='/admin/config') {
     const user=await getAdminAuth(req);if(!user)return sendJSON(res,401,{error:'Unauthorized'});
@@ -1313,6 +1381,18 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify(cfg));
     }catch(e){sendJSON(res,500,{error:e.message});}
     return;
+  }
+
+  // ── Modo manutenção (somente home) ──────────────────────────────────────
+  if(req.method==='GET' && (url==='/'||url==='/index.html'||url==='/home') && pool) {
+    try{
+      const mr=await pool.query("SELECT value FROM site_config WHERE key='maintenanceMode'");
+      if(mr.rows.length>0 && mr.rows[0].value==='true'){
+        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
+        res.end(maintenanceHTML());
+        return;
+      }
+    }catch(e){}
   }
 
   // ── Arquivos estáticos ───────────────────────────────────────────────────

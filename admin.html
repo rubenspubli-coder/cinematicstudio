@@ -92,6 +92,14 @@
   .fav-drop{flex:1;border:1.5px dashed var(--border2);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
   .fav-drop:hover{border-color:var(--accent);background:rgba(245,176,86,.05)}
   .fav-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .switch{position:relative;width:46px;height:26px;flex-shrink:0}
+  .switch input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0;width:100%;height:100%}
+  .switch-track{position:absolute;inset:0;background:rgba(255,255,255,.12);border-radius:999px;transition:background .2s}
+  .switch-track::before{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s}
+  .switch input:checked + .switch-track{background:var(--danger)}
+  .switch input:checked + .switch-track::before{transform:translateX(20px)}
+  .switch input:disabled + .switch-track{opacity:.5;cursor:not-allowed}
   .fav-drop p{font-size:13px;color:var(--muted);margin:0;pointer-events:none}
   .fav-drop p strong{color:var(--fg);display:block;margin-bottom:4px}
   .fav-fname{font-size:11px;color:var(--accent2);margin-top:8px;display:none}
@@ -171,7 +179,7 @@
 
 <div id="login-screen">
   <video id="login-bg-video" muted autoplay loop playsinline></video>
-  <div class="login-box">
+  <div class="login-box" id="login-view-login">
     <div class="login-logo">CINEMATIC <span>AI STUDIO</span></div>
     <div class="login-sub">Painel de administração · Acesso restrito</div>
     <span class="lbl">Usuário</span>
@@ -186,6 +194,36 @@
     </div>
     <button class="login-btn" id="lbtn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="lerr">Usuário ou senha incorretos.</div>
+    <div style="text-align:center;margin-top:16px">
+      <a onclick="showLoginView('forgot')" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:none;">Esqueci a senha</a>
+    </div>
+  </div>
+
+  <div class="login-box" id="login-view-forgot" style="display:none">
+    <div class="login-logo">CINEMATIC <span>AI STUDIO</span></div>
+    <div class="login-sub">Recuperar acesso ao painel</div>
+    <span class="lbl">Usuário</span>
+    <input class="inp" type="text" id="fu" placeholder="admin" autocomplete="username" onkeydown="if(event.key==='Enter')doAdminForgot()" style="margin-bottom:16px">
+    <button class="login-btn" id="fbtn" onclick="doAdminForgot()">Enviar instruções</button>
+    <div class="login-err" id="ferr"></div>
+    <div style="text-align:center;margin-top:16px">
+      <a onclick="showLoginView('login')" style="font-size:12px;color:var(--muted);cursor:pointer;text-decoration:none;">← Voltar ao login</a>
+    </div>
+  </div>
+
+  <div class="login-box" id="login-view-reset" style="display:none">
+    <div class="login-logo">CINEMATIC <span>AI STUDIO</span></div>
+    <div class="login-sub">Criar nova senha do painel</div>
+    <span class="lbl">Nova senha</span>
+    <div class="pw-wrap" style="margin-bottom:16px">
+      <input class="inp" type="password" id="rp" placeholder="Mínimo 6 caracteres" autocomplete="new-password" onkeydown="if(event.key==='Enter')doAdminReset()" style="margin-bottom:0;width:100%">
+      <button type="button" class="pw-eye" onclick="togglePw('rp',this)" aria-label="Mostrar senha">
+        <svg class="eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <svg class="eye-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="login-btn" id="rbtn" onclick="doAdminReset()">Redefinir senha</button>
+    <div class="login-err" id="rerr"></div>
   </div>
 </div>
 
@@ -322,6 +360,18 @@
 
     <div class="st">Manutenção</div>
     <div class="card">
+      <div class="switch-row">
+        <div>
+          <label style="margin-bottom:4px">Site em manutenção</label>
+          <p style="font-size:12px;color:var(--muted);margin:0;line-height:1.5">Quando ativado, a home page (/) mostra a mensagem "Site em manutenção, desculpe o transtorno" para todos os visitantes. As outras páginas do painel e dos agentes continuam acessíveis normalmente.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenance(this)">
+          <span class="switch-track"></span>
+        </label>
+      </div>
+    </div>
+    <div class="card">
       <label>Migrar imagens do Cloudinary para o R2</label>
       <p style="font-size:12px;color:var(--muted);margin:4px 0 12px;line-height:1.5">Imagens enviadas antes da migração para o Cloudflare R2 (favicon, slider, cards, avatares) ainda podem estar hospedadas no Cloudinary. Este botão baixa cada uma e reenvia para o R2 automaticamente, atualizando os links salvos. Pode ser executado mais de uma vez sem problema — imagens já migradas são ignoradas.</p>
       <button class="sb" id="migrate-btn" onclick="migrateToR2()">Migrar imagens restantes</button>
@@ -358,6 +408,55 @@ function doLogout(){
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('lp').value='';
   document.getElementById('lbtn').disabled=false;document.getElementById('lbtn').textContent='Entrar';
+  showLoginView('login');
+}
+
+function showLoginView(name){
+  ['login','forgot','reset'].forEach(function(v){
+    document.getElementById('login-view-'+v).style.display=(v===name?'block':'none');
+  });
+  ['lerr','ferr','rerr'].forEach(function(id){
+    var el=document.getElementById(id);
+    el.style.display='none';el.style.background='';el.style.borderColor='';el.style.color='';
+  });
+}
+
+async function doAdminForgot(){
+  var u=document.getElementById('fu').value.trim();
+  var btn=document.getElementById('fbtn'),err=document.getElementById('ferr');
+  if(!u)return;
+  btn.disabled=true;btn.textContent='Enviando...';
+  try{
+    var r=await fetch('/admin/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u})});
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Erro');
+    err.textContent='✓ Se o usuário existir, as instruções foram enviadas por e-mail.';
+    err.style.display='block';err.style.background='rgba(34,197,94,.12)';err.style.borderColor='rgba(34,197,94,.3)';err.style.color='#86efac';
+  }catch(e){
+    err.textContent=e.message;err.style.display='block';
+  }finally{btn.disabled=false;btn.textContent='Enviar instruções';}
+}
+
+async function doAdminReset(){
+  var params=new URLSearchParams(window.location.search);
+  var tok=params.get('reset');
+  var pass=document.getElementById('rp').value;
+  var btn=document.getElementById('rbtn'),err=document.getElementById('rerr');
+  if(!tok)return;
+  if(pass.length<6){err.textContent='A senha deve ter pelo menos 6 caracteres.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Redefinindo...';
+  try{
+    var r=await fetch('/admin/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,password:pass})});
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Erro');
+    err.textContent='✓ Senha redefinida! Faça login com a nova senha.';
+    err.style.display='block';err.style.background='rgba(34,197,94,.12)';err.style.borderColor='rgba(34,197,94,.3)';err.style.color='#86efac';
+    btn.textContent='Redefinir senha';
+    history.replaceState({},'',window.location.pathname);
+    setTimeout(function(){showLoginView('login');},1800);
+  }catch(e){
+    err.textContent=e.message;err.style.display='block';btn.disabled=false;btn.textContent='Redefinir senha';
+  }
 }
 
 async function showPanel(name){
@@ -411,7 +510,23 @@ async function loadCfg(){
     if(c.faviconBase64)loadFaviconPreview(c.faviconBase64);
     loadCardsFromCfg(c);
     loadSliderFromCfg(c);
+    document.getElementById('maintenance-toggle').checked=(c.maintenanceMode===true||c.maintenanceMode==='true');
   }catch(e){toast('Erro ao carregar: '+e.message,'err');}
+}
+
+async function toggleMaintenance(el){
+  var on=el.checked;
+  el.disabled=true;
+  try{
+    var r=await fetch('/admin/config',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({maintenanceMode:on})});
+    if(r.status===401){doLogout();return;}
+    var d=await r.json();
+    if(!d.ok)throw new Error(d.error||'Erro');
+    toast(on?'✓ Site em manutenção ativado.':'✓ Site em manutenção desativado.');
+  }catch(e){
+    el.checked=!on;
+    toast(e.message,'err');
+  }finally{el.disabled=false;}
 }
 
 function loadFaviconPreview(b64){
@@ -908,6 +1023,10 @@ async function saveSlider() {
 
 // Boot: carregar vídeo de login publicamente + restaurar sessão
 (async function(){
+  // 0. Link de redefinição de senha (/admin.html?reset=TOKEN)
+  var _resetTok=new URLSearchParams(window.location.search).get('reset');
+  if(_resetTok){showLoginView('reset');return;}
+
   // 1. Vídeo de login — sem autenticação (rota pública)
   try{
     var rc=await fetch('/config.json');
